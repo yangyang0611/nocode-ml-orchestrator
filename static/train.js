@@ -1,9 +1,9 @@
 function selectPriority(el) {
-    document.querySelectorAll('.priority-badge').forEach(b => {
-        b.className = 'priority-badge';
+    document.querySelectorAll('.priority-btn').forEach(b => {
+        b.className = 'priority-btn';
     });
     const val = el.dataset.value;
-    el.classList.add('selected-' + val);
+    el.classList.add('sel-' + val);
     document.getElementById('priority').value = val;
 }
 
