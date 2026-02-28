@@ -1,3 +1,32 @@
+document.addEventListener('DOMContentLoaded', loadDatasets);
+
+function loadDatasets() {
+    const sel  = document.getElementById('dataset');
+    const hint = document.getElementById('datasetHint');
+    sel.disabled = true;
+
+    fetch('/api/datasets')
+        .then(r => r.json())
+        .then(datasets => {
+            sel.disabled = false;
+            if (!datasets.length) {
+                sel.innerHTML = '<option value="">No processed datasets found</option>';
+                hint.innerHTML = 'No datasets yet. <a href="/">Go to Preprocessing first →</a>';
+                return;
+            }
+            sel.innerHTML = '<option value="">-- Select a dataset --</option>' +
+                datasets.map(d =>
+                    `<option value="${d.name}">${d.name} (${d.size_mb} MB)</option>`
+                ).join('');
+            // Auto-select if only one dataset
+            if (datasets.length === 1) sel.value = datasets[0].name;
+        })
+        .catch(() => {
+            sel.disabled = false;
+            sel.innerHTML = '<option value="">Failed to load datasets</option>';
+        });
+}
+
 function selectPriority(el) {
     document.querySelectorAll('.priority-btn').forEach(b => {
         b.className = 'priority-btn';
@@ -18,7 +47,7 @@ function submitJob() {
     errorBox.style.display = 'none';
 
     if (!dataset) {
-        showError('Please enter a dataset filename.');
+        showError('Please select a dataset.');
         return;
     }
     if (isNaN(epochs) || epochs < 1) {

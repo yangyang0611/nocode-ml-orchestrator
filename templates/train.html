@@ -51,6 +51,8 @@
             transition: border-color .15s, box-shadow .15s;
         }
         .form-control:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(67,97,238,.12); background: #fff; }
+        select.form-control { padding: 0 12px; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236b7280' d='M6 8L1 3h10z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; }
+        select.form-control:disabled { opacity: .6; cursor: not-allowed; }
 
         /* ── Model cards ── */
         .model-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
@@ -135,10 +137,11 @@
         <!-- Dataset -->
         <div class="card-section">
             <div class="section-label">Dataset</div>
-            <label class="field-label" for="dataset">File Name</label>
-            <input type="text" class="form-control" id="dataset"
-                   value="processed_dataset.zip" placeholder="e.g. processed_dataset.zip">
-            <div class="field-hint">Filename inside the <code>processed/</code> folder</div>
+            <label class="field-label" for="dataset">Processed Dataset</label>
+            <select class="form-control" id="dataset">
+                <option value="">Loading datasets...</option>
+            </select>
+            <div class="field-hint" id="datasetHint">Scanned from the <code>processed/</code> folder</div>
         </div>
 
         <!-- Model -->
@@ -221,6 +224,6 @@ function selectModel(el) {
     document.getElementById('model').value = el.dataset.model;
 }
 </script>
-<script src="/static/train.js?v=2"></script>
+<script src="/static/train.js?v=3"></script>
 </body>
 </html>
