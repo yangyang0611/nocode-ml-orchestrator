@@ -2,7 +2,7 @@ import os
 import docker
 from docker.errors import NotFound, APIError
 
-from config import GPU_MEMORY_LIMIT, TRAINING_IMAGE, PROCESSED_FOLDER, REDIS_URL
+from config import GPU_MEMORY_LIMIT, TRAINING_IMAGE, PROCESSED_FOLDER, REDIS_URL, HOST_BASE_DIR
 
 _client = docker.from_env()
 
@@ -10,7 +10,8 @@ _client = docker.from_env()
 _CONTAINER_REDIS_URL = REDIS_URL.replace("localhost", "host.docker.internal") \
                                 .replace("127.0.0.1", "host.docker.internal")
 
-_BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+# Use HOST_BASE_DIR so sibling training containers get correct host paths
+_BASE_DIR = HOST_BASE_DIR
 
 
 def start_training_container(job_id: str, gpu_id: int, job: dict) -> str:

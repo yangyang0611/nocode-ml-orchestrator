@@ -1,0 +1,28 @@
+services:
+
+  redis:
+    image: redis:alpine
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+
+  flask-app:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    depends_on:
+      - redis
+    volumes:
+      # Dataset and results directories
+      - ../processed:/app/processed
+      - ../results:/app/results
+      # Docker socket — lets Flask spawn sibling training containers
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - REDIS_URL=redis://redis:6379
+      # HOST_BASE_DIR: host-side absolute path of the repo root.
+      # Training containers use this to correctly mount dataset/results volumes.
+      - HOST_BASE_DIR=${HOST_BASE_DIR:-/home/yiting/preprocessing_gui}

@@ -454,4 +454,4 @@ def api_queue():
 start_scheduler()
 
 if __name__ == '__main__':
-    app.run(debug=True, use_reloader=False)  # use_reloader=False prevents double scheduler
+    app.run(host='0.0.0.0', debug=False, use_reloader=False)

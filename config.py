@@ -15,3 +15,12 @@ TRAINING_IMAGE = "ml-training:latest"
 
 # File paths
 PROCESSED_FOLDER = "processed"
+
+# Host base directory for Docker volume mounts.
+# When Flask runs inside a container, this must be set to the HOST's
+# absolute repo path so sibling training containers can mount volumes correctly.
+# When running locally, defaults to the repo root automatically.
+HOST_BASE_DIR = os.getenv(
+    "HOST_BASE_DIR",
+    os.path.abspath(os.path.join(os.path.dirname(__file__)))
+)
