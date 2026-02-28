@@ -6,4 +6,4 @@ numpy==2.1.2
 redis==7.2.1
 rq==2.7.0
 docker==7.1.0
-pynvml==13.0.1
+nvidia-ml-py==13.590.48
