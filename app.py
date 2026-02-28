@@ -196,6 +196,11 @@ def index():
     response.headers['Expires'] = '-1'
     return response
 
+
+@app.route('/train')
+def train():
+    return render_template('train.html')
+
 def clear_upload_folder():
     for filename in os.listdir(UPLOAD_FOLDER):
         file_path = os.path.join(UPLOAD_FOLDER, filename)

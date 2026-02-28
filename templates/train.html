@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Submit Training Job</title>
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <style>
+        body { background-color: #f0f0f0; }
+        .page-wrapper { max-width: 720px; margin: 40px auto; padding: 0 16px; }
+        .priority-badge {
+            display: inline-block; padding: 6px 18px; border-radius: 20px;
+            cursor: pointer; border: 2px solid #dee2e6; margin-right: 8px;
+            font-weight: 500; transition: all .15s;
+        }
+        .priority-badge.selected-high   { background: #dc3545; color: #fff; border-color: #dc3545; }
+        .priority-badge.selected-medium { background: #ffc107; color: #212529; border-color: #ffc107; }
+        .priority-badge.selected-low    { background: #28a745; color: #fff; border-color: #28a745; }
+        .result-box { border-left: 4px solid #28a745; background: #f8fff9; }
+        code { font-size: .8rem; word-break: break-all; }
+    </style>
+</head>
+<body>
+
+<!-- Navbar -->
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <a class="navbar-brand font-weight-bold" href="/">ML Orchestrator</a>
+    <div class="navbar-nav ml-auto">
+        <a class="nav-item nav-link" href="/">Preprocessing</a>
+        <a class="nav-item nav-link active" href="/train">Submit Job</a>
+        <a class="nav-item nav-link" href="/dashboard">Dashboard</a>
+    </div>
+</nav>
+
+<div class="page-wrapper">
+    <h3 class="mb-4 font-weight-bold">Submit Training Job</h3>
+
+    <div class="card shadow-sm">
+        <div class="card-body p-4">
+
+            <!-- Dataset -->
+            <div class="form-group">
+                <label class="font-weight-bold">Dataset File</label>
+                <input type="text" class="form-control" id="dataset"
+                       value="processed_dataset.zip"
+                       placeholder="e.g. processed_dataset.zip">
+                <small class="text-muted">Filename inside the <code>processed/</code> folder</small>
+            </div>
+
+            <!-- Model -->
+            <div class="form-group">
+                <label class="font-weight-bold">Model</label>
+                <select class="form-control" id="model">
+                    <option value="yolov8n.pt">YOLOv8n — Nano (fastest, lowest memory)</option>
+                    <option value="yolov8s.pt">YOLOv8s — Small</option>
+                    <option value="yolov8m.pt">YOLOv8m — Medium</option>
+                </select>
+            </div>
+
+            <!-- Epochs + Batch -->
+            <div class="form-row">
+                <div class="form-group col-6">
+                    <label class="font-weight-bold">Epochs</label>
+                    <input type="number" class="form-control" id="epochs"
+                           value="10" min="1" max="300">
+                </div>
+                <div class="form-group col-6">
+                    <label class="font-weight-bold">Batch Size</label>
+                    <input type="number" class="form-control" id="batchSize"
+                           value="16" min="1" max="128">
+                </div>
+            </div>
+
+            <!-- Priority -->
+            <div class="form-group mb-4">
+                <label class="font-weight-bold d-block">Priority</label>
+                <span class="priority-badge" data-value="high"   onclick="selectPriority(this)">High</span>
+                <span class="priority-badge selected-medium" data-value="medium" onclick="selectPriority(this)">Medium</span>
+                <span class="priority-badge" data-value="low"    onclick="selectPriority(this)">Low</span>
+                <input type="hidden" id="priority" value="medium">
+            </div>
+
+            <button id="submitBtn" class="btn btn-primary btn-block" onclick="submitJob()">
+                Submit Job
+            </button>
+        </div>
+    </div>
+
+    <!-- Result -->
+    <div class="card shadow-sm mt-4 result-box p-3" id="resultCard" style="display:none;">
+        <h5 class="mb-1">Job Submitted</h5>
+        <p class="mb-2 text-muted" style="font-size:.9rem;">
+            Job ID: <code id="resultJobId"></code>
+        </p>
+        <a href="/dashboard" class="btn btn-success btn-sm">View Dashboard</a>
+    </div>
+
+    <div class="alert alert-danger mt-3" id="errorBox" style="display:none;"></div>
+</div>
+
+<script src="../static/train.js"></script>
+</body>
+</html>
