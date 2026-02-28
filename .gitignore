@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+*.pyo
+uploads/
+processed/
+*.zip
+.env
+CLAUDE.md
