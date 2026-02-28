@@ -201,6 +201,11 @@ def index():
 def train():
     return render_template('train.html')
 
+
+@app.route('/dashboard')
+def dashboard():
+    return render_template('dashboard.html')
+
 def clear_upload_folder():
     for filename in os.listdir(UPLOAD_FOLDER):
         file_path = os.path.join(UPLOAD_FOLDER, filename)
