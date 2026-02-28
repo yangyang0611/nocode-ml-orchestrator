@@ -76,7 +76,6 @@ else:
 
 # ── Step 3: Train ────────────────────────────────────────────────────────────
 log(f"Starting training: model={MODEL}, epochs={EPOCHS}, batch={BATCH_SIZE}")
-set_status("running")
 
 try:
     model = YOLO(MODEL)
@@ -90,8 +89,8 @@ try:
         verbose=True,
     )
     log("Training completed successfully.")
-    set_status("completed")
+    # NOTE: status is managed by the scheduler via container exit code.
+    # Exit 0 → scheduler marks "completed", non-zero → "failed".
 except Exception as e:
     log(f"ERROR during training: {e}")
-    set_status("failed")
     sys.exit(1)
