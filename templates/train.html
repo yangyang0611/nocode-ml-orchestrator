@@ -5,32 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Submit Training Job — ML Orchestrator</title>
     <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/static/shared.css">
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <style>
-        :root {
-            --bg:       #f0f4ff;
-            --surface:  #ffffff;
-            --border:   #e4e9f5;
-            --primary:  #4361ee;
-            --primary-dark: #3451d1;
-            --success:  #10b981;
-            --danger:   #ef4444;
-            --warning:  #f59e0b;
-            --text:     #1a1d2e;
-            --muted:    #6b7280;
-            --shadow:   0 2px 20px rgba(67,97,238,.10);
-        }
-
-        * { box-sizing: border-box; }
-        body { background: var(--bg); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: var(--text); }
-
-        /* ── Navbar ── */
-        .navbar { background: #111827 !important; padding: 0 24px; height: 56px; }
-        .navbar-brand { color: #fff !important; font-weight: 700; font-size: 1rem; letter-spacing: -.01em; }
-        .nav-link { color: rgba(255,255,255,.6) !important; font-size: .875rem; padding: 18px 14px !important; transition: color .15s; }
-        .nav-link:hover, .nav-link.active { color: #fff !important; }
-        .nav-link.active { border-bottom: 2px solid var(--primary); }
-
         /* ── Layout ── */
         .page { max-width: 680px; margin: 80px auto 60px; padding: 0 20px; }
         .page-title { font-size: 1.5rem; font-weight: 700; margin-bottom: 6px; letter-spacing: -.02em; }
