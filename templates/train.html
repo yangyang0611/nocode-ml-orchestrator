@@ -3,102 +3,224 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Submit Training Job</title>
+    <title>Submit Training Job — ML Orchestrator</title>
     <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <style>
-        body { background-color: #f0f0f0; }
-        .page-wrapper { max-width: 720px; margin: 40px auto; padding: 0 16px; }
-        .priority-badge {
-            display: inline-block; padding: 6px 18px; border-radius: 20px;
-            cursor: pointer; border: 2px solid #dee2e6; margin-right: 8px;
-            font-weight: 500; transition: all .15s;
+        :root {
+            --bg:       #f0f4ff;
+            --surface:  #ffffff;
+            --border:   #e4e9f5;
+            --primary:  #4361ee;
+            --primary-dark: #3451d1;
+            --success:  #10b981;
+            --danger:   #ef4444;
+            --warning:  #f59e0b;
+            --text:     #1a1d2e;
+            --muted:    #6b7280;
+            --shadow:   0 2px 20px rgba(67,97,238,.10);
         }
-        .priority-badge.selected-high   { background: #dc3545; color: #fff; border-color: #dc3545; }
-        .priority-badge.selected-medium { background: #ffc107; color: #212529; border-color: #ffc107; }
-        .priority-badge.selected-low    { background: #28a745; color: #fff; border-color: #28a745; }
-        .result-box { border-left: 4px solid #28a745; background: #f8fff9; }
-        code { font-size: .8rem; word-break: break-all; }
+
+        * { box-sizing: border-box; }
+        body { background: var(--bg); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: var(--text); }
+
+        /* ── Navbar ── */
+        .navbar { background: #111827 !important; padding: 0 24px; height: 56px; }
+        .navbar-brand { color: #fff !important; font-weight: 700; font-size: 1rem; letter-spacing: -.01em; }
+        .nav-link { color: rgba(255,255,255,.6) !important; font-size: .875rem; padding: 18px 14px !important; transition: color .15s; }
+        .nav-link:hover, .nav-link.active { color: #fff !important; }
+        .nav-link.active { border-bottom: 2px solid var(--primary); }
+
+        /* ── Layout ── */
+        .page { max-width: 680px; margin: 80px auto 60px; padding: 0 20px; }
+        .page-title { font-size: 1.5rem; font-weight: 700; margin-bottom: 6px; letter-spacing: -.02em; }
+        .page-subtitle { color: var(--muted); font-size: .9rem; margin-bottom: 28px; }
+
+        /* ── Card ── */
+        .card { border: 1px solid var(--border); border-radius: 16px; box-shadow: var(--shadow); background: var(--surface); overflow: hidden; }
+        .card-section { padding: 24px 28px; border-bottom: 1px solid var(--border); }
+        .card-section:last-child { border-bottom: none; }
+        .section-label { font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin-bottom: 14px; }
+
+        /* ── Form controls ── */
+        .field-label { font-size: .875rem; font-weight: 600; color: var(--text); margin-bottom: 6px; display: block; }
+        .field-hint  { font-size: .78rem; color: var(--muted); margin-top: 5px; }
+        .form-control {
+            border: 1.5px solid var(--border); border-radius: 10px; height: 42px;
+            font-size: .875rem; color: var(--text); background: #fafbff;
+            transition: border-color .15s, box-shadow .15s;
+        }
+        .form-control:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(67,97,238,.12); background: #fff; }
+
+        /* ── Model cards ── */
+        .model-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+        .model-card {
+            border: 2px solid var(--border); border-radius: 12px; padding: 14px 12px;
+            cursor: pointer; transition: all .15s; text-align: center; background: #fafbff;
+        }
+        .model-card:hover { border-color: var(--primary); background: #f0f4ff; }
+        .model-card.selected { border-color: var(--primary); background: #eef1fd; }
+        .model-card.selected .model-name { color: var(--primary); }
+        .model-badge { font-size: .65rem; font-weight: 700; padding: 2px 8px; border-radius: 20px; margin-bottom: 6px; display: inline-block; }
+        .badge-nano   { background: #e0fdf4; color: #065f46; }
+        .badge-small  { background: #eff6ff; color: #1e40af; }
+        .badge-medium { background: #fef3c7; color: #92400e; }
+        .model-name { font-weight: 700; font-size: .9rem; color: var(--text); }
+        .model-desc { font-size: .72rem; color: var(--muted); margin-top: 3px; }
+
+        /* ── Number inputs ── */
+        .num-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+        /* ── Priority ── */
+        .priority-row { display: flex; gap: 10px; }
+        .priority-btn {
+            flex: 1; padding: 10px 0; border: 2px solid var(--border); border-radius: 10px;
+            cursor: pointer; text-align: center; font-size: .85rem; font-weight: 600;
+            transition: all .15s; background: #fafbff; color: var(--muted);
+        }
+        .priority-btn .p-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+        .priority-btn.sel-high   { border-color: var(--danger);   background: #fff5f5; color: var(--danger); }
+        .priority-btn.sel-medium { border-color: var(--warning);  background: #fffbeb; color: #92400e; }
+        .priority-btn.sel-low    { border-color: var(--success);  background: #f0fdf4; color: #065f46; }
+
+        /* ── Submit button ── */
+        .btn-submit {
+            width: 100%; padding: 13px; border: none; border-radius: 10px;
+            background: linear-gradient(135deg, #4361ee, #3a56e8);
+            color: #fff; font-size: .95rem; font-weight: 600;
+            cursor: pointer; transition: opacity .15s, transform .1s;
+            box-shadow: 0 4px 14px rgba(67,97,238,.35);
+        }
+        .btn-submit:hover   { opacity: .93; transform: translateY(-1px); }
+        .btn-submit:active  { transform: translateY(0); }
+        .btn-submit:disabled { opacity: .6; cursor: not-allowed; transform: none; }
+
+        /* ── Success card ── */
+        .success-card {
+            margin-top: 16px; border-radius: 14px; border: 1.5px solid #a7f3d0;
+            background: #f0fdf4; padding: 20px 24px;
+        }
+        .success-icon { font-size: 1.4rem; margin-bottom: 6px; }
+        .success-title { font-weight: 700; font-size: 1rem; color: #065f46; margin-bottom: 4px; }
+        .success-id { font-size: .78rem; color: #047857; margin-bottom: 14px; }
+        .btn-dashboard {
+            display: inline-block; padding: 8px 20px; border-radius: 8px;
+            background: #10b981; color: #fff; font-size: .85rem; font-weight: 600;
+            text-decoration: none; transition: background .15s;
+        }
+        .btn-dashboard:hover { background: #059669; color: #fff; text-decoration: none; }
+
+        /* ── Error ── */
+        .error-box { margin-top: 14px; border-radius: 10px; background: #fef2f2; border: 1.5px solid #fecaca; color: #b91c1c; padding: 12px 16px; font-size: .875rem; }
     </style>
 </head>
 <body>
 
 <!-- Navbar -->
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-    <a class="navbar-brand font-weight-bold" href="/">ML Orchestrator</a>
+<nav class="navbar navbar-expand-lg">
+    <a class="navbar-brand" href="/">ML Orchestrator</a>
     <div class="navbar-nav ml-auto">
-        <a class="nav-item nav-link" href="/">Preprocessing</a>
-        <a class="nav-item nav-link active" href="/train">Submit Job</a>
-        <a class="nav-item nav-link" href="/dashboard">Dashboard</a>
+        <a class="nav-link" href="/">Preprocessing</a>
+        <a class="nav-link active" href="/train">Submit Job</a>
+        <a class="nav-link" href="/dashboard">Dashboard</a>
     </div>
 </nav>
 
-<div class="page-wrapper">
-    <h3 class="mb-4 font-weight-bold">Submit Training Job</h3>
+<div class="page">
+    <div class="page-title">Submit Training Job</div>
+    <div class="page-subtitle">Configure your YOLOv8 training run and join the queue.</div>
 
-    <div class="card shadow-sm">
-        <div class="card-body p-4">
+    <div class="card">
 
-            <!-- Dataset -->
-            <div class="form-group">
-                <label class="font-weight-bold">Dataset File</label>
-                <input type="text" class="form-control" id="dataset"
-                       value="processed_dataset.zip"
-                       placeholder="e.g. processed_dataset.zip">
-                <small class="text-muted">Filename inside the <code>processed/</code> folder</small>
-            </div>
+        <!-- Dataset -->
+        <div class="card-section">
+            <div class="section-label">Dataset</div>
+            <label class="field-label" for="dataset">File Name</label>
+            <input type="text" class="form-control" id="dataset"
+                   value="processed_dataset.zip" placeholder="e.g. processed_dataset.zip">
+            <div class="field-hint">Filename inside the <code>processed/</code> folder</div>
+        </div>
 
-            <!-- Model -->
-            <div class="form-group">
-                <label class="font-weight-bold">Model</label>
-                <select class="form-control" id="model">
-                    <option value="yolov8n.pt">YOLOv8n — Nano (fastest, lowest memory)</option>
-                    <option value="yolov8s.pt">YOLOv8s — Small</option>
-                    <option value="yolov8m.pt">YOLOv8m — Medium</option>
-                </select>
-            </div>
-
-            <!-- Epochs + Batch -->
-            <div class="form-row">
-                <div class="form-group col-6">
-                    <label class="font-weight-bold">Epochs</label>
-                    <input type="number" class="form-control" id="epochs"
-                           value="10" min="1" max="300">
+        <!-- Model -->
+        <div class="card-section">
+            <div class="section-label">Model</div>
+            <div class="model-grid">
+                <div class="model-card selected" data-model="yolov8n.pt" onclick="selectModel(this)">
+                    <span class="model-badge badge-nano">NANO</span>
+                    <div class="model-name">YOLOv8n</div>
+                    <div class="model-desc">Fastest · lowest memory</div>
                 </div>
-                <div class="form-group col-6">
-                    <label class="font-weight-bold">Batch Size</label>
-                    <input type="number" class="form-control" id="batchSize"
-                           value="16" min="1" max="128">
+                <div class="model-card" data-model="yolov8s.pt" onclick="selectModel(this)">
+                    <span class="model-badge badge-small">SMALL</span>
+                    <div class="model-name">YOLOv8s</div>
+                    <div class="model-desc">Balanced speed &amp; accuracy</div>
+                </div>
+                <div class="model-card" data-model="yolov8m.pt" onclick="selectModel(this)">
+                    <span class="model-badge badge-medium">MEDIUM</span>
+                    <div class="model-name">YOLOv8m</div>
+                    <div class="model-desc">Higher accuracy · more VRAM</div>
                 </div>
             </div>
+            <input type="hidden" id="model" value="yolov8n.pt">
+        </div>
 
-            <!-- Priority -->
-            <div class="form-group mb-4">
-                <label class="font-weight-bold d-block">Priority</label>
-                <span class="priority-badge" data-value="high"   onclick="selectPriority(this)">High</span>
-                <span class="priority-badge selected-medium" data-value="medium" onclick="selectPriority(this)">Medium</span>
-                <span class="priority-badge" data-value="low"    onclick="selectPriority(this)">Low</span>
-                <input type="hidden" id="priority" value="medium">
+        <!-- Epochs + Batch -->
+        <div class="card-section">
+            <div class="section-label">Training Parameters</div>
+            <div class="num-row">
+                <div>
+                    <label class="field-label" for="epochs">Epochs</label>
+                    <input type="number" class="form-control" id="epochs" value="10" min="1" max="300">
+                </div>
+                <div>
+                    <label class="field-label" for="batchSize">Batch Size</label>
+                    <input type="number" class="form-control" id="batchSize" value="16" min="1" max="128">
+                </div>
             </div>
+        </div>
 
-            <button id="submitBtn" class="btn btn-primary btn-block" onclick="submitJob()">
-                Submit Job
-            </button>
+        <!-- Priority -->
+        <div class="card-section">
+            <div class="section-label">Queue Priority</div>
+            <div class="priority-row">
+                <div class="priority-btn" data-value="high" onclick="selectPriority(this)">
+                    <span class="p-dot" style="background:#ef4444"></span>High
+                </div>
+                <div class="priority-btn sel-medium" data-value="medium" onclick="selectPriority(this)">
+                    <span class="p-dot" style="background:#f59e0b"></span>Medium
+                </div>
+                <div class="priority-btn" data-value="low" onclick="selectPriority(this)">
+                    <span class="p-dot" style="background:#10b981"></span>Low
+                </div>
+            </div>
+            <input type="hidden" id="priority" value="medium">
+        </div>
+
+        <!-- Submit -->
+        <div class="card-section">
+            <button class="btn-submit" id="submitBtn" onclick="submitJob()">Submit Job</button>
         </div>
     </div>
 
-    <!-- Result -->
-    <div class="card shadow-sm mt-4 result-box p-3" id="resultCard" style="display:none;">
-        <h5 class="mb-1">Job Submitted</h5>
-        <p class="mb-2 text-muted" style="font-size:.9rem;">
-            Job ID: <code id="resultJobId"></code>
-        </p>
-        <a href="/dashboard" class="btn btn-success btn-sm">View Dashboard</a>
+    <!-- Success -->
+    <div class="success-card" id="resultCard" style="display:none;">
+        <div class="success-icon">✅</div>
+        <div class="success-title">Job Submitted Successfully</div>
+        <div class="success-id">Job ID: <code id="resultJobId"></code></div>
+        <a href="/dashboard" class="btn-dashboard">View Dashboard →</a>
     </div>
 
-    <div class="alert alert-danger mt-3" id="errorBox" style="display:none;"></div>
+    <!-- Error -->
+    <div class="error-box" id="errorBox" style="display:none;"></div>
 </div>
 
-<script src="../static/train.js"></script>
+<script>
+function selectModel(el) {
+    document.querySelectorAll('.model-card').forEach(c => c.classList.remove('selected'));
+    el.classList.add('selected');
+    document.getElementById('model').value = el.dataset.model;
+}
+</script>
+<script src="/static/train.js?v=2"></script>
 </body>
 </html>
