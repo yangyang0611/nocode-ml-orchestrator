@@ -376,6 +376,24 @@ def download_file(filename):
     response.headers['Expires'] = '-1'
     return response
 
+# ── Dataset List API ──────────────────────────────────────────────────────────
+@app.route('/api/datasets', methods=['GET'])
+def api_list_datasets():
+    datasets = []
+    if os.path.isdir(PROCESSED_FOLDER):
+        for fname in os.listdir(PROCESSED_FOLDER):
+            if fname.endswith('.zip'):
+                fpath = os.path.join(PROCESSED_FOLDER, fname)
+                stat = os.stat(fpath)
+                datasets.append({
+                    "name": fname,
+                    "size_mb": round(stat.st_size / 1024 / 1024, 2),
+                    "modified": time.strftime('%Y-%m-%dT%H:%M:%S', time.localtime(stat.st_mtime)),
+                })
+    datasets.sort(key=lambda x: x['modified'], reverse=True)
+    return jsonify(datasets), 200
+
+
 # ── Job Orchestration API ─────────────────────────────────────────────────────
 from job_manager.queue_manager import (
     submit_job, get_job, list_jobs, cancel_job, get_queue_status,
