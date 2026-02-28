@@ -6,3 +6,4 @@ processed/
 *.zip
 .env
 CLAUDE.md
+results/
