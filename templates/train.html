@@ -9,7 +9,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <style>
         /* ── Layout ── */
-        .page { max-width: 680px; margin: 80px auto 60px; padding: 0 20px; }
+        .page { max-width: 680px; margin: 112px auto 60px; padding: 0 20px; }
         .page-title { font-size: 1.5rem; font-weight: 700; margin-bottom: 6px; letter-spacing: -.02em; }
         .page-subtitle { color: var(--muted); font-size: .9rem; margin-bottom: 28px; }
 
@@ -104,6 +104,15 @@
         <a class="nav-link" href="/dashboard">Dashboard</a>
     </div>
 </nav>
+
+<!-- Step bar -->
+<div class="step-bar">
+    <a href="/" class="step"><span class="step-num">1</span>Preprocessing</a>
+    <span class="step-divider">›</span>
+    <a href="/train" class="step active"><span class="step-num">2</span>Submit Job</a>
+    <span class="step-divider">›</span>
+    <a href="/dashboard" class="step"><span class="step-num">3</span>Monitor</a>
+</div>
 
 <div class="page">
     <div class="page-title">Submit Training Job</div>
