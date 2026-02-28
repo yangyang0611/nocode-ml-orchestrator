@@ -78,7 +78,18 @@ const STATUS_CLASS = {
 function renderJobs(jobs) {
     const tbody = document.getElementById('jobTableBody');
     if (!jobs.length) {
-        tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4">No jobs yet.</td></tr>';
+        tbody.innerHTML = `
+        <tr><td colspan="8">
+            <div style="text-align:center; padding:40px 20px;">
+                <div style="font-size:2rem; margin-bottom:12px;">🤖</div>
+                <div style="font-weight:700; font-size:1rem; margin-bottom:6px;">No training jobs yet</div>
+                <div style="color:#6b7280; font-size:.875rem; margin-bottom:20px;">
+                    Start by preprocessing your dataset, then submit a training job.
+                </div>
+                <a href="/" class="btn btn-outline-secondary btn-sm mr-2">Go to Preprocessing</a>
+                <a href="/train" class="btn btn-primary btn-sm">Submit Training Job →</a>
+            </div>
+        </td></tr>`;
         return;
     }
     tbody.innerHTML = jobs.map(job => {
