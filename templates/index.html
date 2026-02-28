@@ -109,6 +109,15 @@
         </div>        
 
         <button id="downloadDataset" class="btn btn-info btn-block mt-3" disabled onclick="downloadDataset()">Download Dataset</button>
+
+        <div id="nextStepBanner" style="display:none; margin-top:16px; padding:16px 20px; background:#f0fdf4; border:1.5px solid #a7f3d0; border-radius:10px;">
+            <div style="font-size:.85rem; color:#065f46; margin-bottom:10px;">
+                ✅ Dataset is ready. Next: submit a training job.
+            </div>
+            <a href="/train" class="btn btn-success btn-block" style="font-weight:600;">
+                Submit Training Job →
+            </a>
+        </div>
     </div>
 
     <script src="../static/index.js"></script>

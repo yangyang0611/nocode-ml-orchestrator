@@ -280,14 +280,14 @@ function processImage() {
         body: JSON.stringify({ datasetFilename, options })
     })
     .then(response => response.json())
-    .then(data => {
+    .then(() => {
         console.log('Processing complete, hiding process spinner');
         if (spinner) {
             spinner.style.display = 'none'; // Hide the spinner
         }
-        alert(data.message);
         document.getElementById('downloadDataset').disabled = false;
-        datasetFilename = 'processed_dataset.zip'; 
+        document.getElementById('nextStepBanner').style.display = 'block';
+        datasetFilename = 'processed_dataset.zip';
     })
     .catch(error => {
         console.log('Error processing images');
