@@ -1,6 +1,5 @@
 const dropZone = document.getElementById('drop-zone');
 const fileInput = document.getElementById('fileInput');
-let uploadedFile;
 let datasetFilename;
 
 dropZone.addEventListener('dragover', (e) => {
@@ -57,7 +56,7 @@ function uploadFiles(files) {
         console.error('Upload spinner element not found');
     }
 
-    fetch('http://localhost:5000/upload', {
+    fetch('/upload', {
         method: 'POST',
         body: formData
     })
@@ -70,13 +69,12 @@ function uploadFiles(files) {
         if (data.message) {
             showUploadStatus(true, 'Files uploaded successfully!');
             datasetFilename = data.datasetFilename;
+            document.getElementById('resetBtn').style.display = 'block';
         }
     })
-    .catch(error => {
-        // Hide the spinner
+    .catch(() => {
         console.log('Upload failed, hiding spinner');
         if (spinner) spinner.style.display = 'none';
-
         showUploadStatus(false, 'Error uploading files');
     });
 }
@@ -92,55 +90,121 @@ function showUploadStatus(success, message) {
     statusDiv.style.display = 'block';
 }
 
-function addStep() {
-    const steps = ['Resize', 'Rotate', 'Mirror', 'Add Noise'];
-    steps.forEach(step => {
-        const checkbox = document.getElementById(step.toLowerCase().replace(/\s+/g, ''));
-        if (checkbox.checked) {
-            let params = {};
-            switch (step) {
-                case 'Resize':
-                    params.width = document.getElementById('resizeWidth').value;
-                    params.height = document.getElementById('resizeHeight').value;
-                    document.getElementById('resizeWidth').value = '';
-                    document.getElementById('resizeHeight').value = '';
-                    break;
-                case 'Rotate':
-                    params.angle = document.getElementById('rotateAngle').value;
-                    document.getElementById('rotateAngle').value = '';
-                    break;
-                case 'Mirror':
-                    break;
-                    case 'Add Noise':
-                    params.type = document.getElementById('noiseType').value;
-                    if (params.type === 'Gaussian') {
-                        params.mean = document.getElementById('noiseMean').value;
-                        params.std = document.getElementById('noiseStd').value;
-                        document.getElementById('noiseMean').value = '';
-                        document.getElementById('noiseStd').value = '';
-                    } else if (params.type === 'Brightness') {
-                        params.factor1 = document.getElementById('brightnessFactor1').value;
-                        params.factor2 = document.getElementById('brightnessFactor2').value;
-                        document.getElementById('brightnessFactor1').value = '';
-                        document.getElementById('brightnessFactor2').value = '';
-                    } else if (params.type === 'Saturation') {
-                        params.factor1 = document.getElementById('saturationFactor1').value;
-                        params.factor2 = document.getElementById('saturationFactor2').value;
-                        document.getElementById('saturationFactor1').value = '';
-                        document.getElementById('saturationFactor2').value = '';
-                    }
-                    document.getElementById('noiseType').value = 'Gaussian';
-                    break;
-            }
-            addStepToList(step, params);
-            checkbox.checked = false;
-        }
-    });
+function showStepError(msg) {
+    const el = document.getElementById('stepError');
+    el.textContent = msg;
+    el.style.display = 'block';
+}
+function clearStepError() {
+    document.getElementById('stepError').style.display = 'none';
+}
 
-    // Hide input sections
+function addStep() {
+    clearStepError();
+    const steps = ['Resize', 'Rotate', 'Mirror', 'Add Noise'];
+    let anyChecked = false;
+
+    for (const step of steps) {
+        const checkbox = document.getElementById(step.toLowerCase().replace(/\s+/g, ''));
+        if (!checkbox.checked) continue;
+        anyChecked = true;
+        let params = {};
+
+        switch (step) {
+            case 'Resize': {
+                const w = document.getElementById('resizeWidth').value;
+                const h = document.getElementById('resizeHeight').value;
+                if (!w || !h || parseInt(w) <= 0 || parseInt(h) <= 0) {
+                    showStepError('Resize: please enter valid Width and Height.');
+                    return;
+                }
+                params.width = w;
+                params.height = h;
+                document.getElementById('resizeWidth').value = '';
+                document.getElementById('resizeHeight').value = '';
+                break;
+            }
+            case 'Rotate':
+                params.angle = document.getElementById('rotateAngle').value;
+                break;
+            case 'Mirror':
+                break;
+            case 'Add Noise': {
+                params.type = document.getElementById('noiseType').value;
+                if (params.type === 'Gaussian') {
+                    const mean = document.getElementById('noiseMean').value;
+                    const std  = document.getElementById('noiseStd').value;
+                    if (mean === '' || std === '') {
+                        showStepError('Gaussian noise: please enter Mean and Std.');
+                        return;
+                    }
+                    params.mean = mean;
+                    params.std  = std;
+                    document.getElementById('noiseMean').value = '';
+                    document.getElementById('noiseStd').value  = '';
+                } else if (params.type === 'Brightness') {
+                    const f1 = document.getElementById('brightnessFactor1').value;
+                    const f2 = document.getElementById('brightnessFactor2').value;
+                    if (f1 === '' || f2 === '') {
+                        showStepError('Brightness: please enter both Factor values.');
+                        return;
+                    }
+                    params.factor1 = f1;
+                    params.factor2 = f2;
+                    document.getElementById('brightnessFactor1').value = '';
+                    document.getElementById('brightnessFactor2').value = '';
+                } else if (params.type === 'Saturation') {
+                    const f1 = document.getElementById('saturationFactor1').value;
+                    const f2 = document.getElementById('saturationFactor2').value;
+                    if (f1 === '' || f2 === '') {
+                        showStepError('Saturation: please enter both Factor values.');
+                        return;
+                    }
+                    params.factor1 = f1;
+                    params.factor2 = f2;
+                    document.getElementById('saturationFactor1').value = '';
+                    document.getElementById('saturationFactor2').value = '';
+                }
+                document.getElementById('noiseType').value = 'Gaussian';
+                break;
+            }
+        }
+        addStepToList(step, params);
+        checkbox.checked = false;
+    }
+
+    if (!anyChecked) {
+        showStepError('Please select at least one function.');
+        return;
+    }
+
     document.getElementById('resizeInputs').style.display = 'none';
     document.getElementById('rotateInputs').style.display = 'none';
     document.getElementById('noiseInputs').style.display = 'none';
+}
+
+function resetAll() {
+    datasetFilename = null;
+    // Reset drop zone
+    dropZone.innerHTML = '<p>Drag & Drop Files or Folder Here</p><p>or</p><button class="btn btn-primary" onclick="document.getElementById(\'fileInput\').click()">Select File or Folder</button>';
+    // Hide status & banners
+    const uploadStatus = document.getElementById('uploadStatus');
+    uploadStatus.style.display = 'none';
+    uploadStatus.className = '';
+    document.getElementById('nextStepBanner').style.display = 'none';
+    // Reset buttons
+    document.getElementById('downloadDataset').disabled = true;
+    document.getElementById('resetBtn').style.display = 'none';
+    // Clear steps list
+    document.getElementById('sortable-list').innerHTML = '';
+    // Uncheck all checkboxes and hide inputs
+    ['resize', 'rotate', 'mirror', 'addnoise'].forEach(id => {
+        document.getElementById(id).checked = false;
+    });
+    document.getElementById('resizeInputs').style.display = 'none';
+    document.getElementById('rotateInputs').style.display = 'none';
+    document.getElementById('noiseInputs').style.display = 'none';
+    clearStepError();
 }
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -272,7 +336,7 @@ function processImage() {
         console.error('Process spinner element not found');
     }
 
-    fetch('http://localhost:5000/process', {
+    fetch('/process', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
@@ -289,11 +353,9 @@ function processImage() {
         document.getElementById('nextStepBanner').style.display = 'block';
         datasetFilename = 'processed_dataset.zip';
     })
-    .catch(error => {
+    .catch(() => {
         console.log('Error processing images');
-        if (spinner) {
-            spinner.style.display = 'none'; // Hide the spinner
-        }
+        if (spinner) spinner.style.display = 'none';
         alert('Error processing images');
     });
 }
@@ -303,34 +365,11 @@ function processImage() {
 function downloadDataset() {
     if (datasetFilename) {
         const downloadLink = document.createElement('a');
-        downloadLink.href = `http://localhost:5000/download/processed_dataset.zip`;
+        downloadLink.href = `/download/processed_dataset.zip`;
         downloadLink.download = 'processed_dataset.zip';
         downloadLink.click();
     }
 }
-
-// Add event listeners to enable/disable input fields
-document.getElementById('resize').addEventListener('change', function() {
-    document.getElementById('resizeInputs').style.display = this.checked ? 'block' : 'none';
-});
-
-document.getElementById('rotate').addEventListener('change', function() {
-    document.getElementById('rotateInputs').style.display = this.checked ? 'block' : 'none';
-});
-
-document.getElementById('addnoise').addEventListener('change', function() {
-    document.getElementById('noiseInputs').style.display = this.checked ? 'block' : 'none';
-    updateNoiseInputs();
-});
-
-function updateNoiseInputs() {
-    const noiseType = document.getElementById('noiseType').value;
-    document.getElementById('gaussianInputs').style.display = noiseType === 'Gaussian' ? 'block' : 'none';
-    document.getElementById('brightnessInputs').style.display = noiseType === 'Brightness' ? 'block' : 'none';
-    document.getElementById('saturationInputs').style.display = noiseType === 'Saturation' ? 'block' : 'none';
-}
-
-document.getElementById('noiseType').addEventListener('change', updateNoiseInputs);
 
 // sorted the list by drag and drop Functions
 const sortableList = document.getElementById('sortable-list');

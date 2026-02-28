@@ -112,13 +112,15 @@
         </div>
 
         <button id="addStepBtn" class="btn btn-success btn-block mt-3" onclick="addStep()">Add Step</button>
-        <button class="btn btn-primary btn-block mt-3" onclick="processImage()">Proceed</button>
+        <div id="stepError" class="alert alert-warning mt-2" style="display:none;"></div>
+        <button class="btn btn-primary btn-block mt-3" onclick="processImage()">Start Processing</button>
         
         <div class="process-spinner spinner-border text-primary" id="processSpinner" role="status" style="display: none;">
             <span class="sr-only">Processing...</span>
         </div>        
 
         <button id="downloadDataset" class="btn btn-info btn-block mt-3" disabled onclick="downloadDataset()">Download Dataset</button>
+        <button id="resetBtn" class="btn btn-outline-secondary btn-block mt-2" onclick="resetAll()" style="display:none;">Reset</button>
 
         <div id="nextStepBanner" style="display:none; margin-top:16px; padding:16px 20px; background:#f0fdf4; border:1.5px solid #a7f3d0; border-radius:10px;">
             <div style="font-size:.85rem; color:#065f46; margin-bottom:10px;">
