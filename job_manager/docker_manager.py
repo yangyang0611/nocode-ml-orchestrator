@@ -50,6 +50,7 @@ def start_training_container(job_id: str, gpu_id: int, job: dict) -> str:
         volumes=volumes,
         device_requests=device_requests,
         mem_limit=GPU_MEMORY_LIMIT,   # RAM limit for resource isolation
+        extra_hosts={"host.docker.internal": "host-gateway"},  # Linux host resolution
         detach=True,
         remove=False,                 # Keep container so logs are retrievable
     )

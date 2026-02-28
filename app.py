@@ -366,5 +366,82 @@ def download_file(filename):
     response.headers['Expires'] = '-1'
     return response
 
+# ── Job Orchestration API ─────────────────────────────────────────────────────
+from job_manager.queue_manager import (
+    submit_job, get_job, list_jobs, cancel_job, get_queue_status,
+)
+from job_manager.gpu_manager import get_gpu_status
+from job_manager.docker_manager import get_container_logs
+from job_manager.scheduler import start_scheduler
+
+
+@app.route('/api/jobs', methods=['POST'])
+def api_submit_job():
+    data = request.json or {}
+    required = {'model', 'epochs', 'dataset'}
+    if not required.issubset(data):
+        return jsonify({"error": f"Missing fields: {required - data.keys()}"}), 400
+
+    job_config = {
+        "model":      data['model'],
+        "epochs":     str(data['epochs']),
+        "batch_size": str(data.get('batch_size', 16)),
+        "dataset":    data['dataset'],
+        "user":       data.get('user', 'anonymous'),
+    }
+    priority = data.get('priority', 'medium')
+    job_id = submit_job(job_config, priority=priority)
+    return jsonify({"job_id": job_id, "status": "pending"}), 201
+
+
+@app.route('/api/jobs', methods=['GET'])
+def api_list_jobs():
+    return jsonify(list_jobs()), 200
+
+
+@app.route('/api/jobs/<job_id>', methods=['GET'])
+def api_get_job(job_id):
+    job = get_job(job_id)
+    if not job:
+        return jsonify({"error": "Job not found"}), 404
+    return jsonify(job), 200
+
+
+@app.route('/api/jobs/<job_id>', methods=['DELETE'])
+def api_cancel_job(job_id):
+    ok = cancel_job(job_id)
+    if not ok:
+        return jsonify({"error": "Job not found or already finished"}), 404
+    return jsonify({"job_id": job_id, "status": "cancelled"}), 200
+
+
+@app.route('/api/jobs/<job_id>/logs', methods=['GET'])
+def api_get_logs(job_id):
+    job = get_job(job_id)
+    if not job:
+        return jsonify({"error": "Job not found"}), 404
+
+    # Prefer live container logs when running, else return stored logs
+    container_id = job.get("container_id", "")
+    if container_id:
+        logs = get_container_logs(container_id)
+    else:
+        logs = job.get("logs", "")
+    return jsonify({"job_id": job_id, "logs": logs}), 200
+
+
+@app.route('/api/resources', methods=['GET'])
+def api_resources():
+    return jsonify(get_gpu_status()), 200
+
+
+@app.route('/api/queue', methods=['GET'])
+def api_queue():
+    return jsonify(get_queue_status()), 200
+
+
+# ── Start scheduler when Flask launches ───────────────────────────────────────
+start_scheduler()
+
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True, use_reloader=False)  # use_reloader=False prevents double scheduler
