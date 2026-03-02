@@ -156,6 +156,9 @@
                             </div>
                         </div>
                     </div>
+
+                    <button class="btn-add" onclick="addStep()" style="margin-top:8px;">+ Add Step</button>
+                    <div class="step-error" id="stepError" style="display:none;"></div>
                 </div>
 
                 <!-- Right: Steps -->
@@ -164,8 +167,6 @@
                         Processing Steps
                         <span style="font-weight:400; text-transform:none; font-size:.72rem; margin-left:4px;">drag to reorder</span>
                     </div>
-                    <button class="btn-add" onclick="addStep()">+ Add Step</button>
-                    <div class="step-error" id="stepError" style="display:none;"></div>
                     <ul id="sortable-list" class="sortable-list"></ul>
                     <div class="empty-steps" id="emptySteps">No steps added yet.</div>
                 </div>
