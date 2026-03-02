@@ -50,7 +50,7 @@
         .model-desc { font-size: .72rem; color: var(--muted); margin-top: 3px; }
 
         /* ── Number inputs ── */
-        .num-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+        .num-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 18px; }
 
         /* ── Priority ── */
         .priority-row { display: flex; gap: 10px; }
@@ -178,7 +178,7 @@
             <input type="hidden" id="model" value="yolov8n.pt">
         </div>
 
-        <!-- Epochs + Batch -->
+        <!-- Training Parameters -->
         <div class="card-section">
             <div class="section-label">Training Parameters</div>
             <div class="num-row">
@@ -189,6 +189,33 @@
                 <div>
                     <label class="field-label" for="batchSize">Batch Size</label>
                     <input type="number" class="form-control" id="batchSize" value="16" min="1" max="128">
+                </div>
+                <div>
+                    <label class="field-label" for="imgsz">Image Size</label>
+                    <input type="number" class="form-control" id="imgsz" value="640" min="32" max="1280" step="32">
+                    <div class="field-hint">e.g. 320 / 416 / 640 / 1280</div>
+                </div>
+                <div>
+                    <label class="field-label" for="lr0">Learning Rate</label>
+                    <input type="number" class="form-control" id="lr0" value="0.01" min="0.0001" max="1" step="0.0001">
+                </div>
+                <div>
+                    <label class="field-label" for="optimizer">Optimizer</label>
+                    <select class="form-control" id="optimizer" onchange="updateOptimizerHint(this.value)">
+                        <option value="auto">Default (recommended)</option>
+                        <option value="SGD">SGD</option>
+                        <option value="Adam">Adam</option>
+                        <option value="AdamW">AdamW</option>
+                        <option value="NAdam">NAdam</option>
+                        <option value="RAdam">RAdam</option>
+                        <option value="RMSProp">RMSProp</option>
+                    </select>
+                    <div class="field-hint" id="optimizerHint">Auto-selects SGD for standard CNN models (YOLOv8n/s/m), AdamW for Transformer-based models</div>
+                </div>
+                <div>
+                    <label class="field-label" for="patience">Patience (Early Stop)</label>
+                    <input type="number" class="form-control" id="patience" value="50" min="0" max="300">
+                    <div class="field-hint">0 = disabled</div>
                 </div>
             </div>
         </div>
@@ -240,10 +267,45 @@
 })();
 </script>
 <script>
+// Models with Transformer layers → AdamW + lr 0.001; rest → SGD + lr 0.01
+const TRANSFORMER_MODELS = ['rtdetr-l.pt', 'rtdetr-x.pt'];
+
+function getAutoLr() {
+    const model = document.getElementById('model').value;
+    return TRANSFORMER_MODELS.includes(model) ? 0.001 : 0.01;
+}
+
 function selectModel(el) {
     document.querySelectorAll('.model-card').forEach(c => c.classList.remove('selected'));
     el.classList.add('selected');
     document.getElementById('model').value = el.dataset.model;
+    // If optimizer is auto, sync lr0
+    if (document.getElementById('optimizer').value === 'auto') {
+        document.getElementById('lr0').value = getAutoLr();
+        updateOptimizerHint('auto');
+    }
+}
+
+const OPTIMIZER_HINTS = {
+    auto:     '',   // filled dynamically
+    SGD:      'Classic momentum-based optimizer. Reliable for most detection tasks.',
+    Adam:     'Adaptive learning rate. Good convergence but higher memory usage.',
+    AdamW:    'Adam with decoupled weight decay. Often better generalisation than Adam.',
+    NAdam:    'Adam with Nesterov momentum. Slightly faster convergence than Adam.',
+    RAdam:    'Rectified Adam. Stable early training, no warm-up needed.',
+    RMSProp:  'Good for recurrent/noisy gradients. Less common for YOLO.',
+};
+
+function updateOptimizerHint(val) {
+    const hint = document.getElementById('optimizerHint');
+    if (val === 'auto') {
+        const lr = getAutoLr();
+        const opName = TRANSFORMER_MODELS.includes(document.getElementById('model').value) ? 'AdamW' : 'SGD';
+        hint.textContent = `Auto-selects ${opName} for this model with lr=${lr}. You can still override the Learning Rate above.`;
+        document.getElementById('lr0').value = lr;
+    } else {
+        hint.textContent = OPTIMIZER_HINTS[val] || '';
+    }
 }
 </script>
 <script src="/static/train.js?v=3"></script>

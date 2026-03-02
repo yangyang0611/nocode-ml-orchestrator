@@ -41,6 +41,10 @@ function submitJob() {
     const model     = document.getElementById('model').value;
     const epochs    = parseInt(document.getElementById('epochs').value);
     const batchSize = parseInt(document.getElementById('batchSize').value);
+    const imgsz     = parseInt(document.getElementById('imgsz').value);
+    const lr0       = parseFloat(document.getElementById('lr0').value);
+    const optimizer = document.getElementById('optimizer').value;
+    const patience  = parseInt(document.getElementById('patience').value);
     const priority  = document.getElementById('priority').value;
 
     const errorBox = document.getElementById('errorBox');
@@ -58,6 +62,18 @@ function submitJob() {
         showError('Batch size must be at least 1.');
         return;
     }
+    if (isNaN(imgsz) || imgsz < 32) {
+        showError('Image size must be at least 32.');
+        return;
+    }
+    if (isNaN(lr0) || lr0 <= 0) {
+        showError('Learning rate must be greater than 0.');
+        return;
+    }
+    if (isNaN(patience) || patience < 0) {
+        showError('Patience must be 0 or greater.');
+        return;
+    }
 
     const btn = document.getElementById('submitBtn');
     btn.disabled = true;
@@ -66,7 +82,7 @@ function submitJob() {
     fetch('/api/jobs', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ dataset, model, epochs, batch_size: batchSize, priority })
+        body: JSON.stringify({ dataset, model, epochs, batch_size: batchSize, imgsz, lr0, optimizer, patience, priority })
     })
     .then(r => r.json())
     .then(data => {
@@ -99,6 +115,10 @@ function resetForm() {
     document.getElementById('errorBox').style.display = 'none';
     document.getElementById('epochs').value = 10;
     document.getElementById('batchSize').value = 16;
+    document.getElementById('imgsz').value = 640;
+    document.getElementById('lr0').value = 0.01;
+    document.getElementById('optimizer').value = 'auto';
+    document.getElementById('patience').value = 50;
     // Reset model to nano
     document.querySelectorAll('.model-card').forEach(c => c.classList.remove('selected'));
     document.querySelector('[data-model="yolov8n.pt"]').classList.add('selected');

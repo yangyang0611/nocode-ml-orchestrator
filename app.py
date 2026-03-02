@@ -414,6 +414,10 @@ def api_submit_job():
         "model":      data['model'],
         "epochs":     str(data['epochs']),
         "batch_size": str(data.get('batch_size', 16)),
+        "imgsz":      str(data.get('imgsz', 640)),
+        "lr0":        str(data.get('lr0', 0.01)),
+        "optimizer":  data.get('optimizer', 'auto'),
+        "patience":   str(data.get('patience', 50)),
         "dataset":    data['dataset'],
         "user":       data.get('user', 'anonymous'),
     }
