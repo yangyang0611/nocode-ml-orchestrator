@@ -71,7 +71,10 @@
                 <span class="refresh-dot"></span>Monitor GPU resources and training jobs in real time.
             </div>
         </div>
-        <span class="ml-auto text-muted" style="font-size:.8rem; margin-top:6px;" id="lastUpdated"></span>
+        <div class="ml-auto d-flex align-items-center" style="gap:12px; margin-top:6px;">
+            <span class="text-muted" style="font-size:.8rem;" id="lastUpdated"></span>
+            <button onclick="fetchAll()" style="padding:6px 14px; border:1.5px solid var(--border); border-radius:8px; background:#fff; font-size:.82rem; font-weight:600; color:var(--text); cursor:pointer; transition:border-color .15s;" onmouseover="this.style.borderColor='var(--primary)'" onmouseout="this.style.borderColor='var(--border)'">↻ Refresh</button>
+        </div>
     </div>
 
     <!-- GPU Resources -->
