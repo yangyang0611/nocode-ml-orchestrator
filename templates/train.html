@@ -7,6 +7,8 @@
     <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="/static/shared.css">
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <style>
         /* ── Layout ── */
         .page { max-width: 800px; margin: 112px auto 60px; padding: 0 20px; }
@@ -100,6 +102,20 @@
 
         /* ── Error ── */
         .error-box { margin-top: 14px; border-radius: 10px; background: #fef2f2; border: 1.5px solid #fecaca; color: #b91c1c; padding: 12px 16px; font-size: .875rem; }
+
+        /* ── Responsive ── */
+        @media (max-width: 640px) {
+            .model-grid { grid-template-columns: 1fr 1fr; }
+            .num-row    { grid-template-columns: 1fr; }
+        }
+        @media (max-width: 480px) {
+            .page         { padding: 0 12px; }
+            .card-section { padding: 18px 16px; }
+        }
+        @media (max-width: 400px) {
+            .model-grid   { grid-template-columns: 1fr; }
+            .priority-row { flex-direction: column; }
+        }
     </style>
 </head>
 <body>
@@ -107,10 +123,10 @@
 <!-- Navbar -->
 <nav class="navbar navbar-expand-lg">
     <a class="navbar-brand" href="/">ML Orchestrator</a>
-    <div class="navbar-nav ml-auto">
-        <a class="nav-link" href="/">Preprocessing</a>
-        <a class="nav-link active" href="/train">Submit Job</a>
-        <a class="nav-link" href="/dashboard">Dashboard</a>
+    <div class="navbar-nav">
+        <a class="nav-item nav-link" href="/">Preprocessing</a>
+        <a class="nav-item nav-link active" href="/train">Submit Job</a>
+        <a class="nav-item nav-link" href="/dashboard">Dashboard</a>
     </div>
 </nav>
 

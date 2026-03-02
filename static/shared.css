@@ -31,12 +31,17 @@ body {
     width: 100%;
     top: 0;
     z-index: 999;
+    flex-wrap: nowrap;
+    justify-content: flex-start;
 }
 .navbar-brand {
     color: #fff !important;
     font-weight: 700;
     font-size: 1rem;
     letter-spacing: -.01em;
+}
+.navbar-nav {
+    flex-direction: row;
 }
 .nav-link {
     color: rgba(255,255,255,.6) !important;
@@ -108,6 +113,21 @@ body {
 .step.done { color: var(--success); }
 .step.done .step-num { background: var(--success); color: #fff; }
 .step-divider { color: #d1d5db; font-size: .75rem; user-select: none; }
+
+/* ── Responsive shared ───────────────────────────────────────────────────────── */
+@media (max-width: 600px) {
+    .navbar { padding: 0 14px; }
+    .nav-link { font-size: .78rem; padding: 18px 8px !important; }
+    .step { padding: 0 10px; gap: 6px; font-size: .8rem; }
+    .step-divider { padding: 0 2px; }
+}
+
+/* On very small screens hide step label text, show numbers only */
+@media (max-width: 380px) {
+    .step { font-size: 0; padding: 0 6px; gap: 0; }
+    .step-num { font-size: .7rem; width: 22px; height: 22px; margin: 0 3px; }
+    .step-divider { font-size: .7rem; }
+}
 
 /* ── Priority dots ───────────────────────────────────────────────────────────── */
 .priority-dot {

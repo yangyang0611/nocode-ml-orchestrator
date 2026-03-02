@@ -240,6 +240,17 @@ select.form-control {
 /* ── Responsive ───────────────────────────────────────────────────────────── */
 @media (max-width: 640px) {
     .two-col   { grid-template-columns: 1fr; }
+    .param-row { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 400px) {
     .action-row { flex-direction: column; }
-    .btn-reset { width: 100%; }
+    .btn-reset  { width: 100%; }
+}
+
+@media (max-width: 480px) {
+    .page         { padding: 0 12px; }
+    .card-section { padding: 18px 16px; }
+    .next-banner  { padding: 16px 16px; }
+    .drop-zone    { padding: 24px 16px; }
 }
