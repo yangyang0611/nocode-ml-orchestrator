@@ -45,16 +45,8 @@ function uploadFiles(files) {
         formData.append('files', files[i]);
     }
 
-    // Show the spinner
     const spinner = document.getElementById('uploadSpinner');
-    if (spinner) {
-        console.log('Showing upload spinner');
-        spinner.style.display = 'block';
-        spinner.style.visibility = 'visible';
-        spinner.style.opacity = '1';
-    } else {
-        console.error('Upload spinner element not found');
-    }
+    if (spinner) spinner.style.display = 'flex';
 
     fetch('/upload', {
         method: 'POST',
@@ -195,8 +187,8 @@ function resetAll() {
     // Reset buttons
     document.getElementById('downloadDataset').disabled = true;
     document.getElementById('resetBtn').style.display = 'none';
-    // Clear steps list
     document.getElementById('sortable-list').innerHTML = '';
+    document.getElementById('emptySteps').style.display = 'block';
     // Uncheck all checkboxes and hide inputs
     ['resize', 'rotate', 'mirror', 'addnoise'].forEach(id => {
         document.getElementById(id).checked = false;
@@ -287,22 +279,35 @@ document.getElementById('saturationFactor2').addEventListener('blur', function()
 function addStepToList(step, params) {
     const list = document.getElementById('sortable-list');
     const newItem = document.createElement('li');
-    newItem.classList.add('sortable-item', 'list-group-item');
+    newItem.classList.add('sortable-item');
     newItem.setAttribute('draggable', 'true');
     newItem.dataset.step = step;
     newItem.dataset.params = JSON.stringify(params);
 
-    let paramString = Object.entries(params).map(([key, value]) => `${key}: ${value}`).join(', ');
-    newItem.textContent = `${step} (${paramString})`;
+    const handle = document.createElement('span');
+    handle.className = 'drag-handle';
+    handle.textContent = '⠿';
+
+    const label = document.createElement('span');
+    label.className = 'step-text';
+    let paramString = Object.entries(params).map(([k, v]) => `${k}: ${v}`).join(', ');
+    label.textContent = paramString ? `${step} (${paramString})` : step;
 
     const deleteBtn = document.createElement('button');
-    deleteBtn.textContent = 'X';
-    deleteBtn.className = 'btn btn-danger btn-sm ml-2';
+    deleteBtn.textContent = '✕';
+    deleteBtn.className = 'btn btn-outline-danger btn-sm';
+    deleteBtn.style.cssText = 'padding:2px 8px; font-size:.75rem; flex-shrink:0;';
     deleteBtn.onclick = function() {
         list.removeChild(newItem);
+        if (list.children.length === 0)
+            document.getElementById('emptySteps').style.display = 'block';
     };
+
+    newItem.appendChild(handle);
+    newItem.appendChild(label);
     newItem.appendChild(deleteBtn);
 
+    document.getElementById('emptySteps').style.display = 'none';
     list.appendChild(newItem);
 
     newItem.addEventListener('dragstart', () => newItem.classList.add('dragging'));
@@ -329,12 +334,7 @@ function processImage() {
     const options = { sequence: steps };
     const spinner = document.getElementById('processSpinner');
     
-    if (spinner) {
-        console.log('Showing process spinner');
-        spinner.style.display = 'block'; // Show the spinner
-    } else {
-        console.error('Process spinner element not found');
-    }
+    if (spinner) spinner.style.display = 'flex';
 
     fetch('/process', {
         method: 'POST',
