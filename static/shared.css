@@ -42,6 +42,7 @@ body {
 }
 .navbar-nav {
     flex-direction: row;
+    margin-left: auto;
 }
 .nav-link {
     color: rgba(255,255,255,.6) !important;
