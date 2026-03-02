@@ -61,7 +61,7 @@ function submitJob() {
 
     const btn = document.getElementById('submitBtn');
     btn.disabled = true;
-    btn.textContent = 'Submitting...';
+    btn.innerHTML = '<span class="btn-spinner"></span>Submitting...';
 
     fetch('/api/jobs', {
         method: 'POST',

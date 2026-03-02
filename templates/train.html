@@ -62,6 +62,15 @@
         .priority-btn.sel-medium { border-color: var(--warning);  background: #fffbeb; color: #92400e; }
         .priority-btn.sel-low    { border-color: var(--success);  background: #f0fdf4; color: #065f46; }
 
+        /* ── Button spinner ── */
+        .btn-spinner {
+            display: inline-block; width: 14px; height: 14px;
+            border: 2px solid rgba(255,255,255,.4); border-top-color: #fff;
+            border-radius: 50%; animation: spin .65s linear infinite;
+            margin-right: 8px; vertical-align: middle;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
         /* ── Submit button ── */
         .btn-submit {
             width: 100%; padding: 13px; border: none; border-radius: 10px;
