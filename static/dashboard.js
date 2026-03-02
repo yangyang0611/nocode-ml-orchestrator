@@ -105,7 +105,7 @@ function renderJobs(jobs) {
 
         return `
         <tr>
-          <td><code style="font-size:.8rem">${short}</code></td>
+          <td><code style="font-size:.8rem; cursor:default;" title="${id}">${short}</code></td>
           <td><span class="status-badge ${sCls}">${status}</span></td>
           <td>${job.model || '-'}</td>
           <td>${job.epochs || '-'}</td>
