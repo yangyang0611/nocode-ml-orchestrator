@@ -56,7 +56,7 @@
     </div>
 
     <!-- Configure -->
-    <div class="card">
+    <div class="card card-disabled" id="configureCard">
         <div class="card-section">
             <div class="section-label">Configure Augmentation</div>
             <div class="two-col">
@@ -176,7 +176,7 @@
     </div>
 
     <!-- Actions -->
-    <div class="card">
+    <div class="card card-disabled" id="actionsCard">
         <div class="card-section">
             <div class="action-row">
                 <button class="btn-process" onclick="processImage()">Start Processing</button>
@@ -195,5 +195,13 @@
 </div>
 
 <script src="/static/index.js"></script>
+<script>
+(function() {
+    if (localStorage.getItem('mlorch_step1_done'))
+        document.querySelector('.step-bar a[href="/"]').classList.add('done');
+    if (localStorage.getItem('mlorch_step2_done'))
+        document.querySelector('.step-bar a[href="/train"]').classList.add('done');
+})();
+</script>
 </body>
 </html>

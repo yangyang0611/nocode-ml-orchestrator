@@ -105,6 +105,8 @@ body {
 }
 .step.active { color: var(--primary); }
 .step.active .step-num { background: var(--primary); color: #fff; }
+.step.done { color: var(--success); }
+.step.done .step-num { background: var(--success); color: #fff; }
 .step-divider { color: #d1d5db; font-size: .75rem; user-select: none; }
 
 /* ── Priority dots ───────────────────────────────────────────────────────────── */

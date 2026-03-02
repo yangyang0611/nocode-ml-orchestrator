@@ -216,6 +216,14 @@
 </div>
 
 <script>
+(function() {
+    if (localStorage.getItem('mlorch_step1_done'))
+        document.querySelector('.step-bar a[href="/"]').classList.add('done');
+    if (localStorage.getItem('mlorch_step2_done'))
+        document.querySelector('.step-bar a[href="/train"]').classList.add('done');
+})();
+</script>
+<script>
 function selectModel(el) {
     document.querySelectorAll('.model-card').forEach(c => c.classList.remove('selected'));
     el.classList.add('selected');

@@ -62,6 +62,8 @@ function uploadFiles(files) {
             showUploadStatus(true, 'Files uploaded successfully!');
             datasetFilename = data.datasetFilename;
             document.getElementById('resetBtn').style.display = 'block';
+            document.getElementById('configureCard').classList.remove('card-disabled');
+            document.getElementById('actionsCard').classList.remove('card-disabled');
         }
     })
     .catch(() => {
@@ -197,6 +199,8 @@ function resetAll() {
     document.getElementById('rotateInputs').style.display = 'none';
     document.getElementById('noiseInputs').style.display = 'none';
     clearStepError();
+    document.getElementById('configureCard').classList.add('card-disabled');
+    document.getElementById('actionsCard').classList.add('card-disabled');
 }
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -352,6 +356,7 @@ function processImage() {
         document.getElementById('downloadDataset').disabled = false;
         document.getElementById('nextStepBanner').style.display = 'block';
         datasetFilename = 'processed_dataset.zip';
+        localStorage.setItem('mlorch_step1_done', '1');
     })
     .catch(() => {
         console.log('Error processing images');

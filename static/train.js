@@ -76,6 +76,7 @@ function submitJob() {
             document.getElementById('resultJobId').textContent = data.job_id;
             document.getElementById('resultCard').style.display = 'block';
             window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+            localStorage.setItem('mlorch_step2_done', '1');
         } else {
             showError(data.error || 'Unknown error');
         }
