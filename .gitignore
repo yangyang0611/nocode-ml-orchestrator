@@ -7,3 +7,4 @@ processed/
 .env
 CLAUDE.md
 results/
+models/
