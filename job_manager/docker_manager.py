@@ -2,7 +2,7 @@ import os
 import docker
 from docker.errors import NotFound, APIError
 
-from config import GPU_MEMORY_LIMIT, TRAINING_IMAGE, PROCESSED_FOLDER, REDIS_URL, HOST_BASE_DIR
+from config import GPU_MEMORY_LIMIT, TRAINING_IMAGE, PROCESSED_FOLDER, MODELS_FOLDER, REDIS_URL, HOST_BASE_DIR
 
 _client = docker.from_env()
 
@@ -21,6 +21,7 @@ def start_training_container(job_id: str, gpu_id: int, job: dict) -> str:
     """
     dataset_host_path = os.path.join(_BASE_DIR, PROCESSED_FOLDER)
     results_host_path = os.path.join(_BASE_DIR, "results")
+    models_host_path  = os.path.join(_BASE_DIR, MODELS_FOLDER)
     os.makedirs(results_host_path, exist_ok=True)
 
     environment = {
@@ -35,6 +36,7 @@ def start_training_container(job_id: str, gpu_id: int, job: dict) -> str:
     volumes = {
         dataset_host_path: {"bind": "/workspace/dataset", "mode": "ro"},
         results_host_path: {"bind": "/workspace/results",  "mode": "rw"},
+        models_host_path:  {"bind": "/models",             "mode": "ro"},
     }
 
     device_requests = [

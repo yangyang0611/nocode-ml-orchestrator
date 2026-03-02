@@ -77,8 +77,15 @@ else:
 # ── Step 3: Train ────────────────────────────────────────────────────────────
 log(f"Starting training: model={MODEL}, epochs={EPOCHS}, batch={BATCH_SIZE}")
 
+# Resolve model path: prefer pre-downloaded weights in /models/
+_model_filename = MODEL if MODEL.endswith(".pt") else f"{MODEL}.pt"
+_model_path = f"/models/{_model_filename}"
+if not os.path.exists(_model_path):
+    log(f"WARNING: {_model_path} not found, falling back to Ultralytics auto-download.")
+    _model_path = _model_filename
+
 try:
-    model = YOLO(MODEL)
+    model = YOLO(_model_path)
     model.train(
         data=yaml_path,
         epochs=EPOCHS,

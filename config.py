@@ -15,6 +15,7 @@ TRAINING_IMAGE = "ml-training:latest"
 
 # File paths
 PROCESSED_FOLDER = "processed"
+MODELS_FOLDER = "models"
 
 # Host base directory for Docker volume mounts.
 # When Flask runs inside a container, this must be set to the HOST's
