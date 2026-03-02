@@ -81,7 +81,7 @@
         <div>
             <div class="page-title">Training Dashboard</div>
             <div class="page-subtitle">
-                <span class="refresh-dot"></span>Monitor GPU resources and training jobs in real time.
+                <span class="refresh-dot"></span>Auto-refreshes every 3 s &nbsp;·&nbsp; Monitor GPU resources and training jobs in real time.
             </div>
         </div>
         <div class="ml-auto d-flex align-items-center" style="gap:12px; margin-top:6px;">
@@ -103,12 +103,19 @@
     </div>
 
     <!-- Job List -->
-    <div class="section-label">Training Jobs</div>
+    <div class="d-flex align-items-center justify-content-between mb-2">
+        <div class="section-label mb-0">Training Jobs</div>
+        <button id="deleteSelectedBtn" onclick="deleteSelected()"
+                style="display:none; padding:5px 12px; border:1.5px solid var(--danger); border-radius:8px; background:transparent; color:var(--danger); font-size:.82rem; font-weight:600; cursor:pointer;">
+            Delete Selected
+        </button>
+    </div>
     <div class="card shadow-sm">
         <div class="table-responsive">
             <table class="table table-hover mb-0">
                 <thead class="thead-light">
                     <tr>
+                        <th style="width:36px;"><input type="checkbox" id="selectAllCb" onclick="toggleSelectAll(this)"></th>
                         <th>Job ID</th>
                         <th>Status</th>
                         <th>Model</th>
@@ -120,7 +127,7 @@
                     </tr>
                 </thead>
                 <tbody id="jobTableBody">
-                    <tr><td colspan="8" class="text-center text-muted py-4">Loading...</td></tr>
+                    <tr><td colspan="9" class="text-center text-muted py-4">Loading...</td></tr>
                 </tbody>
             </table>
         </div>
@@ -152,6 +159,6 @@
 </script>
 <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
 <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.bundle.min.js"></script>
-<script src="/static/dashboard.js"></script>
+<script src="/static/dashboard.js?v=3"></script>
 </body>
 </html>
