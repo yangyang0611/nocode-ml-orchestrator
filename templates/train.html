@@ -196,7 +196,10 @@
         <div class="success-icon">✅</div>
         <div class="success-title">Job Submitted Successfully</div>
         <div class="success-id">Job ID: <code id="resultJobId"></code></div>
-        <a href="/dashboard" class="btn-dashboard">View Dashboard →</a>
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+            <a href="/dashboard" class="btn-dashboard">View Dashboard →</a>
+            <button onclick="resetForm()" style="padding:8px 20px; border-radius:8px; border:1.5px solid #10b981; background:transparent; color:#10b981; font-size:.85rem; font-weight:600; cursor:pointer;">Submit Another Job</button>
+        </div>
     </div>
 
     <!-- Error -->

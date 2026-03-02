@@ -92,3 +92,21 @@ function showError(msg) {
     box.textContent = msg;
     box.style.display = 'block';
 }
+
+function resetForm() {
+    document.getElementById('resultCard').style.display = 'none';
+    document.getElementById('errorBox').style.display = 'none';
+    document.getElementById('epochs').value = 10;
+    document.getElementById('batchSize').value = 16;
+    // Reset model to nano
+    document.querySelectorAll('.model-card').forEach(c => c.classList.remove('selected'));
+    document.querySelector('[data-model="yolov8n.pt"]').classList.add('selected');
+    document.getElementById('model').value = 'yolov8n.pt';
+    // Reset priority to medium
+    document.querySelectorAll('.priority-btn').forEach(b => b.className = 'priority-btn');
+    document.querySelector('[data-value="medium"]').classList.add('sel-medium');
+    document.getElementById('priority').value = 'medium';
+    // Reload datasets
+    loadDatasets();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
