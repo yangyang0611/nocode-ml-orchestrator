@@ -330,11 +330,6 @@ function processImage() {
             params: JSON.parse(item.dataset.params)
         }));
 
-    if (steps.length === 0) {
-        alert('Please add at least one processing step.');
-        return;
-    }
-
     const options = { sequence: steps };
     const spinner = document.getElementById('processSpinner');
     
