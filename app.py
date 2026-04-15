@@ -217,26 +217,61 @@ def clear_upload_folder():
         except Exception as e:
             print(f'Failed to delete {file_path}. Reason: {e}')
             
+IMAGE_EXTS = ('.png', '.jpg', '.jpeg')
+
+
+def validate_yolo_zip(zip_path):
+    """Return (ok, message, stats). Requires at least one image with a matching .txt label."""
+    try:
+        with zipfile.ZipFile(zip_path, 'r') as zf:
+            names = [n for n in zf.namelist() if not n.endswith('/')]
+    except zipfile.BadZipFile:
+        return False, "Uploaded file is not a valid .zip archive.", {}
+
+    stems_with_label = {os.path.splitext(n)[0] for n in names if n.lower().endswith('.txt')}
+    images = [n for n in names if n.lower().endswith(IMAGE_EXTS)]
+    if not images:
+        return False, "Zip contains no images (.png/.jpg/.jpeg).", {"images": 0}
+
+    matched = [n for n in images if os.path.splitext(n)[0] in stems_with_label]
+    if not matched:
+        return False, "No image has a matching .txt label file in the zip.", {
+            "images": len(images), "matched": 0,
+        }
+    return True, "ok", {"images": len(images), "matched": len(matched)}
+
+
 @app.route('/upload', methods=['POST'])
 def upload():
-    # Clear the upload folder before saving new files
     clear_upload_folder()
 
     files = request.files.getlist('files')
-    for file in files:
-        filename = file.filename
-        file_path = os.path.join(UPLOAD_FOLDER, filename)
-        
-        # Ensure directory exists
-        ensure_dir_exists(os.path.dirname(file_path))
-        
-        file.save(file_path)
-    
-    # Assuming the uploaded folder or zip file is saved
+    if not files:
+        return jsonify({"error": "No file uploaded"}), 400
+    if len(files) > 1:
+        return jsonify({"error": "Please upload a single .zip file."}), 400
+
+    f = files[0]
+    if not f.filename.lower().endswith('.zip'):
+        return jsonify({"error": "Only .zip files are accepted."}), 400
+
     dataset_filename = "uploaded_dataset.zip"
-    zip_folder(UPLOAD_FOLDER, os.path.join(PROCESSED_FOLDER, dataset_filename))
-    
-    return jsonify({"message": "Files uploaded successfully", "datasetFilename": dataset_filename}), 200
+    dataset_path = os.path.join(PROCESSED_FOLDER, dataset_filename)
+    f.save(dataset_path)
+
+    ok, msg, stats = validate_yolo_zip(dataset_path)
+    if not ok:
+        try:
+            os.remove(dataset_path)
+        except OSError:
+            pass
+        return jsonify({"error": msg, "stats": stats}), 400
+
+    return jsonify({
+        "message": f"Uploaded {stats['matched']}/{stats['images']} image–label pairs.",
+        "datasetFilename": dataset_filename,
+        "stats": stats,
+    }), 200
 
 @app.route('/uploads/<filename>')
 def uploaded_file(filename):
@@ -273,9 +308,12 @@ def process():
 
     for root, dirs, files in os.walk(unzip_dir):
         for file in files:
-            if file.endswith(('.png', '.jpg', '.jpeg')):
+            if file.lower().endswith(IMAGE_EXTS):
                 original_img_path = os.path.join(root, file)
                 original_label_path = os.path.splitext(original_img_path)[0] + '.txt'
+                if not os.path.exists(original_label_path):
+                    print(f"Skipping {original_img_path}: no matching .txt label")
+                    continue
                 final_img_path = os.path.join(PROCESSED_FILES_FOLDER, file)
                 final_label_path = os.path.join(PROCESSED_FILES_FOLDER, os.path.splitext(file)[0] + '.txt')
 

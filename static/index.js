@@ -25,17 +25,16 @@ fileInput.addEventListener('change', (e) => {
 
 function handleFiles(files) {
     console.log('Handling files');
-    if (files.length) {
-        uploadFiles(files);
-        // Extract the folder name from the first file's path
-        const filePath = files[0].webkitRelativePath || files[0].name;
-        const folderName = filePath.split('/')[0];
+    if (!files.length) return;
 
-        // Log to verify what we get
-        console.log('File path:', filePath);
-        console.log('Folder name:', folderName);
-        dropZone.innerHTML = `<p>Uploaded Folder: ${folderName}</p>`;
+    const file = files[0];
+    if (!file.name.toLowerCase().endsWith('.zip')) {
+        showUploadStatus(false, 'Please upload a .zip file containing your YOLO dataset.');
+        return;
     }
+
+    uploadFiles([file]);
+    dropZone.innerHTML = `<p>Uploaded: ${file.name}</p>`;
 }
 
 function uploadFiles(files) {
@@ -180,7 +179,7 @@ function addStep() {
 function resetAll() {
     datasetFilename = null;
     // Reset drop zone
-    dropZone.innerHTML = '<p>Drag & Drop Files or Folder Here</p><p>or</p><button class="btn btn-primary" onclick="document.getElementById(\'fileInput\').click()">Select File or Folder</button>';
+    dropZone.innerHTML = '<p>Drag & Drop a <strong>.zip</strong> file here</p><p class="small text-muted">(YOLO dataset: images + matching .txt labels)</p><p>or</p><button class="btn btn-primary btn-sm" onclick="document.getElementById(\'fileInput\').click()">Select .zip File</button>';
     // Hide status & banners
     const uploadStatus = document.getElementById('uploadStatus');
     uploadStatus.style.display = 'none';
