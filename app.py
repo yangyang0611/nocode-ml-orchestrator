@@ -224,26 +224,37 @@ IMAGE_EXTS = ('.png', '.jpg', '.jpeg')
 
 
 def validate_yolo_zip(zip_path):
-    """Return (ok, message, stats). Requires at least one image with a matching .txt label."""
+    """Inspect zip contents. Returns (ok, message, report).
+    Hard-fails only when the zip is invalid or contains no images.
+    Otherwise always ok=True and lets the caller surface warnings."""
     try:
         with zipfile.ZipFile(zip_path, 'r') as zf:
             names = [n for n in zf.namelist() if not n.endswith('/')]
     except zipfile.BadZipFile:
         return False, "Uploaded file is not a valid .zip archive.", {}
 
-    label_stems = {os.path.splitext(os.path.basename(n))[0]
-                   for n in names if n.lower().endswith('.txt')}
-    images = [n for n in names if n.lower().endswith(IMAGE_EXTS)]
-    if not images:
+    image_map = {os.path.splitext(os.path.basename(n))[0]: os.path.basename(n)
+                 for n in names if n.lower().endswith(IMAGE_EXTS)}
+    label_map = {os.path.splitext(os.path.basename(n))[0]: os.path.basename(n)
+                 for n in names if n.lower().endswith('.txt')}
+
+    if not image_map:
         return False, "Zip contains no images (.png/.jpg/.jpeg).", {"images": 0}
 
-    matched = [n for n in images
-               if os.path.splitext(os.path.basename(n))[0] in label_stems]
-    if not matched:
-        return False, "No image has a matching .txt label file in the zip.", {
-            "images": len(images), "matched": 0,
-        }
-    return True, "ok", {"images": len(images), "matched": len(matched)}
+    image_stems = set(image_map)
+    label_stems = set(label_map)
+    matched_stems      = image_stems & label_stems
+    unmatched_images   = sorted(image_map[s] for s in image_stems - label_stems)
+    orphan_labels      = sorted(label_map[s] for s in label_stems - image_stems)
+
+    report = {
+        "images":           len(image_map),
+        "labels":           len(label_map),
+        "matched":          len(matched_stems),
+        "unmatched_images": unmatched_images,
+        "orphan_labels":    orphan_labels,
+    }
+    return True, "ok", report
 
 
 @app.route('/upload', methods=['POST'])
@@ -264,18 +275,18 @@ def upload():
     dataset_path = os.path.join(PROCESSED_FOLDER, dataset_filename)
     f.save(dataset_path)
 
-    ok, msg, stats = validate_yolo_zip(dataset_path)
+    ok, msg, report = validate_yolo_zip(dataset_path)
     if not ok:
         try:
             os.remove(dataset_path)
         except OSError:
             pass
-        return jsonify({"error": msg, "stats": stats}), 400
+        return jsonify({"error": msg, "stats": report}), 400
 
     return jsonify({
-        "message": f"Uploaded {stats['matched']}/{stats['images']} image–label pairs.",
+        "message": f"Uploaded: {report['matched']}/{report['images']} image–label pairs.",
         "datasetFilename": dataset_filename,
-        "stats": stats,
+        "report": report,
     }), 200
 
 @app.route('/upload', methods=['DELETE'])

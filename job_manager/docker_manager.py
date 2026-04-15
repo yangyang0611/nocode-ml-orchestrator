@@ -29,6 +29,11 @@ def start_training_container(job_id: str, gpu_id: int, job: dict) -> str:
         "MODEL":       job.get("model",      "yolov8n.pt"),
         "EPOCHS":      job.get("epochs",     "10"),
         "BATCH":       job.get("batch_size", "16"),
+        "IMGSZ":       job.get("imgsz",      "640"),
+        "LR0":         job.get("lr0",        "0.01"),
+        "OPTIMIZER":   job.get("optimizer",  "auto"),
+        "PATIENCE":    job.get("patience",   "50"),
+        "WORKERS":     job.get("workers",    "8"),
         "DATASET_ZIP": f"/workspace/dataset/{job.get('dataset', 'processed_dataset.zip')}",
         "REDIS_URL":   _CONTAINER_REDIS_URL,
     }
@@ -36,7 +41,7 @@ def start_training_container(job_id: str, gpu_id: int, job: dict) -> str:
     volumes = {
         dataset_host_path: {"bind": "/workspace/dataset", "mode": "ro"},
         results_host_path: {"bind": "/workspace/results",  "mode": "rw"},
-        models_host_path:  {"bind": "/models",             "mode": "ro"},
+        models_host_path:  {"bind": "/models",             "mode": "rw"},
     }
 
     device_requests = [

@@ -36,6 +36,60 @@ function handleFiles(files) {
     uploadFiles([file]);
 }
 
+function showMismatchDialog(report, onContinue) {
+    const unmatched = report.unmatched_images || [];
+    const orphans   = report.orphan_labels   || [];
+    const MAX_SHOW  = 20;
+
+    const listHtml = (title, arr, color) => {
+        if (!arr.length) return '';
+        const shown = arr.slice(0, MAX_SHOW);
+        const extra = arr.length > MAX_SHOW ? `<div class="text-muted small">…and ${arr.length - MAX_SHOW} more</div>` : '';
+        return `
+            <div style="margin-top:12px;">
+                <div style="font-weight:600; color:${color};">${title} (${arr.length})</div>
+                <ul style="max-height:160px; overflow:auto; padding-left:20px; margin:6px 0; font-size:.85rem;">
+                    ${shown.map(n => `<li><code>${n}</code></li>`).join('')}
+                </ul>
+                ${extra}
+            </div>`;
+    };
+
+    const backdrop = document.createElement('div');
+    backdrop.style.cssText = 'position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:9999; display:flex; align-items:center; justify-content:center;';
+    backdrop.innerHTML = `
+        <div style="background:white; max-width:560px; width:90%; border-radius:8px; padding:24px; box-shadow:0 10px 40px rgba(0,0,0,.3);">
+            <h5 style="margin-top:0;">⚠️ Dataset Mismatch Detected</h5>
+            <p class="text-muted small" style="margin-bottom:8px;">
+                Matched pairs: <strong>${report.matched}</strong> / ${report.images} images, ${report.labels} labels.
+            </p>
+            ${listHtml('Images without label', unmatched, '#c0392b')}
+            ${listHtml('Labels without image', orphans, '#d68910')}
+            <p class="text-muted small" style="margin-top:12px;">
+                Unmatched images will be treated as pure background during training (no objects).
+                Orphan labels will be ignored.
+            </p>
+            <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:16px;">
+                <button class="btn btn-outline-secondary btn-sm" id="mmCancel">Cancel & Fix</button>
+                <button class="btn btn-primary btn-sm" id="mmContinue">Continue Anyway</button>
+            </div>
+        </div>`;
+    document.body.appendChild(backdrop);
+
+    backdrop.querySelector('#mmContinue').onclick = () => {
+        document.body.removeChild(backdrop);
+        onContinue();
+    };
+    backdrop.querySelector('#mmCancel').onclick = () => {
+        document.body.removeChild(backdrop);
+        fetch('/upload', { method: 'DELETE' }).finally(() => {
+            dropZone.innerHTML = '<p>Drag & Drop a <strong>.zip</strong> file here</p><p class="small text-muted">(YOLO dataset: images + matching .txt labels)</p><p>or</p><button class="btn btn-primary btn-sm" onclick="document.getElementById(\'fileInput\').click()">Select .zip File</button>';
+            fileInput.value = '';
+            showUploadStatus(false, 'Upload cancelled. Please fix the dataset and try again.');
+        });
+    };
+}
+
 function renderUploadedState(filename) {
     dropZone.innerHTML = `
         <div class="uploaded-file">
@@ -91,12 +145,24 @@ function uploadFiles(files) {
         if (spinner) spinner.style.display = 'none';
 
         if (data.datasetFilename) {
-            showUploadStatus(true, data.message || 'Files uploaded successfully!');
-            datasetFilename = data.datasetFilename;
-            renderUploadedState(files[0].name);
-            document.getElementById('resetBtn').style.display = 'block';
-            document.getElementById('configureCard').classList.remove('card-disabled');
-            document.getElementById('actionsCard').classList.remove('card-disabled');
+            const report = data.report || {};
+            const unmatched = report.unmatched_images || [];
+            const orphans = report.orphan_labels || [];
+
+            const finalize = () => {
+                showUploadStatus(true, data.message || 'Files uploaded successfully!');
+                datasetFilename = data.datasetFilename;
+                renderUploadedState(files[0].name);
+                document.getElementById('resetBtn').style.display = 'block';
+                document.getElementById('configureCard').classList.remove('card-disabled');
+                document.getElementById('actionsCard').classList.remove('card-disabled');
+            };
+
+            if (unmatched.length || orphans.length) {
+                showMismatchDialog(report, finalize);
+            } else {
+                finalize();
+            }
         } else if (data.error) {
             showUploadStatus(false, data.error);
         }

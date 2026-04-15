@@ -14,6 +14,11 @@ JOB_ID      = os.environ["JOB_ID"]
 MODEL       = os.environ.get("MODEL",       "yolov8n.pt")
 EPOCHS      = int(os.environ.get("EPOCHS",  "10"))
 BATCH_SIZE  = int(os.environ.get("BATCH",   "16"))
+IMGSZ       = int(os.environ.get("IMGSZ",   "640"))
+LR0         = float(os.environ.get("LR0",   "0.01"))
+OPTIMIZER   = os.environ.get("OPTIMIZER",   "auto")
+PATIENCE    = int(os.environ.get("PATIENCE","50"))
+WORKERS     = int(os.environ.get("WORKERS", "8"))
 DATASET_ZIP = os.environ.get("DATASET_ZIP", "/workspace/dataset/processed_dataset.zip")
 REDIS_URL   = os.environ.get("REDIS_URL",   "redis://localhost:6379")
 
@@ -75,29 +80,65 @@ else:
     log("Found existing data.yaml.")
 
 # ── Step 3: Train ────────────────────────────────────────────────────────────
-log(f"Starting training: model={MODEL}, epochs={EPOCHS}, batch={BATCH_SIZE}")
+log(f"Starting training: model={MODEL}, epochs={EPOCHS}, batch={BATCH_SIZE}, "
+    f"imgsz={IMGSZ}, lr0={LR0}, optimizer={OPTIMIZER}, patience={PATIENCE}")
 
-# Resolve model path: prefer pre-downloaded weights in /models/
+# Resolve model path: prefer pre-downloaded weights in /models/.
+# If missing, download into /models/ so subsequent jobs reuse it.
 _model_filename = MODEL if MODEL.endswith(".pt") else f"{MODEL}.pt"
 _model_path = f"/models/{_model_filename}"
 if not os.path.exists(_model_path):
-    log(f"WARNING: {_model_path} not found, falling back to Ultralytics auto-download.")
-    _model_path = _model_filename
+    log(f"{_model_filename} not cached, downloading into /models/ (persisted).")
+    try:
+        os.makedirs("/models", exist_ok=True)
+        os.chdir("/models")                       # Ultralytics downloads to CWD
+        _ = YOLO(_model_filename)                 # triggers download into /models/
+    except Exception as e:
+        log(f"ERROR pre-downloading model: {e}")
+        set_status("failed")
+        sys.exit(1)
+    if not os.path.exists(_model_path):
+        log(f"ERROR: download finished but {_model_path} still missing.")
+        set_status("failed")
+        sys.exit(1)
+    log(f"Cached {_model_filename} at /models/ for future jobs.")
 
-try:
+def _run_train(workers: int):
     model = YOLO(_model_path)
     model.train(
         data=yaml_path,
         epochs=EPOCHS,
         batch=BATCH_SIZE,
+        imgsz=IMGSZ,
+        lr0=LR0,
+        optimizer=OPTIMIZER,
+        patience=PATIENCE,
+        workers=workers,
         project="/workspace/results",
         name=JOB_ID,
         exist_ok=True,
         verbose=True,
     )
+
+try:
+    _run_train(WORKERS)
     log("Training completed successfully.")
     # NOTE: status is managed by the scheduler via container exit code.
     # Exit 0 → scheduler marks "completed", non-zero → "failed".
 except Exception as e:
-    log(f"ERROR during training: {e}")
-    sys.exit(1)
+    msg = str(e)
+    # WSL2 + CUDA: DataLoader workers + pin_memory thread often crash with
+    # "AcceleratorError ... pin memory thread". Retry single-process (workers=0)
+    # which avoids the pin_memory thread entirely.
+    if WORKERS > 0 and ("pin memory" in msg.lower() or "acceleratorerror" in msg.lower()):
+        log(f"ERROR during training: {e}")
+        log("Retrying with workers=0 to bypass pin_memory thread issue...")
+        try:
+            _run_train(0)
+            log("Training completed successfully (workers=0 fallback).")
+        except Exception as e2:
+            log(f"ERROR during training (retry): {e2}")
+            sys.exit(1)
+    else:
+        log(f"ERROR during training: {e}")
+        sys.exit(1)
