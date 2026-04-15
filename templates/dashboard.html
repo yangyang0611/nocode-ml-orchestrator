@@ -107,6 +107,27 @@
         <span class="queue-pill queue-low">Low: <span id="qLow">-</span></span>
     </div>
 
+    <!-- Training Progress -->
+    <div class="d-flex align-items-center justify-content-between mb-2" style="flex-wrap:wrap; gap:10px;">
+        <div class="section-label mb-0">Training Progress</div>
+        <div class="d-flex align-items-center" style="gap:8px;">
+            <select id="progressJobSelect" class="form-control form-control-sm" style="height:32px; font-size:.8rem; min-width:260px;">
+                <option value="">— select a job —</option>
+            </select>
+        </div>
+    </div>
+    <div class="card shadow-sm mb-4">
+        <div style="padding:16px 20px;">
+            <div id="progressEmpty" class="text-center text-muted" style="padding:24px; font-size:.85rem;">
+                Select a job to view its loss curve.
+            </div>
+            <div id="progressChartWrap" style="display:none;">
+                <canvas id="lossChart" height="110"></canvas>
+                <div class="mt-2 text-muted" style="font-size:.75rem;"><span id="progressMeta"></span></div>
+            </div>
+        </div>
+    </div>
+
     <!-- Job List -->
     <div class="d-flex align-items-center justify-content-between mb-2">
         <div class="section-label mb-0">Training Jobs</div>
@@ -179,6 +200,8 @@
 </script>
 <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
 <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.bundle.min.js"></script>
-<script src="/static/dashboard.js?v=4"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="/static/dashboard.js?v=5"></script>
+<script src="/static/dashboard_progress.js?v=1"></script>
 </body>
 </html>

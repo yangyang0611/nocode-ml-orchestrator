@@ -579,6 +579,36 @@ def api_get_logs(job_id):
     return jsonify({"job_id": job_id, "logs": clean_training_logs(logs)}), 200
 
 
+@app.route('/api/jobs/<job_id>/metrics', methods=['GET'])
+def api_get_metrics(job_id):
+    """Read results.csv produced by ultralytics and return per-epoch metrics."""
+    if not re.fullmatch(r'[0-9a-fA-F-]{36}', job_id):
+        return jsonify({"error": "invalid job_id"}), 400
+    csv_path = os.path.join('results', job_id, 'results.csv')
+    if not os.path.isfile(csv_path):
+        return jsonify({"job_id": job_id, "epochs": [], "series": {}}), 200
+
+    import csv
+    series: dict[str, list] = {}
+    epochs: list[int] = []
+    with open(csv_path, newline='') as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            try:
+                ep = int(float(row.get('epoch', '0')))
+            except ValueError:
+                continue
+            epochs.append(ep)
+            for k, v in row.items():
+                if k == 'epoch' or v is None or v == '':
+                    continue
+                try:
+                    series.setdefault(k, []).append(float(v))
+                except ValueError:
+                    pass
+    return jsonify({"job_id": job_id, "epochs": epochs, "series": series}), 200
+
+
 @app.route('/api/resources', methods=['GET'])
 def api_resources():
     return jsonify(get_gpu_status()), 200
