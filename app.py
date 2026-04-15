@@ -525,6 +525,28 @@ def api_cancel_job(job_id):
     return jsonify({"job_id": job_id, "status": "cancelled"}), 200
 
 
+import re
+
+# Ultralytics progress-bar line: "... : 37% ━━━─── 2/36 ..."  We keep 100%
+# lines (useful end-of-epoch summary) and drop all intermediate updates.
+_PROGRESS_RE = re.compile(r'(\d+)%\s+[─━╸]+\s*\d+/\d+')
+# ANSI escape sequences (e.g. '\x1b[K') that appear in container logs.
+_ANSI_RE = re.compile(r'\x1b\[[0-9;?]*[a-zA-Z]')
+
+
+def clean_training_logs(raw: str) -> str:
+    if not raw:
+        return raw
+    out = []
+    for line in raw.splitlines():
+        line = _ANSI_RE.sub('', line)
+        m = _PROGRESS_RE.search(line)
+        if m and int(m.group(1)) < 100:
+            continue
+        out.append(line)
+    return "\n".join(out)
+
+
 @app.route('/api/jobs/<job_id>/logs', methods=['GET'])
 def api_get_logs(job_id):
     job = get_job(job_id)
@@ -534,10 +556,10 @@ def api_get_logs(job_id):
     # Prefer live container logs when running, else return stored logs
     container_id = job.get("container_id", "")
     if container_id:
-        logs = get_container_logs(container_id)
+        logs = get_container_logs(container_id, tail=2000)
     else:
         logs = job.get("logs", "")
-    return jsonify({"job_id": job_id, "logs": logs}), 200
+    return jsonify({"job_id": job_id, "logs": clean_training_logs(logs)}), 200
 
 
 @app.route('/api/resources', methods=['GET'])
