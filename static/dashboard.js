@@ -115,7 +115,7 @@ function renderJobs(jobs) {
         return `
         <tr>
           <td><input type="checkbox" class="job-cb" value="${id}" ${checked} onchange="updateDeleteBtn()"></td>
-          <td><code style="font-size:.8rem; cursor:default;" title="${id}">${short}</code></td>
+          <td><code style="font-size:.8rem; cursor:pointer; text-decoration:underline dotted;" title="Click to see details" onclick="showDetails('${id}')">${short}</code></td>
           <td><span class="status-badge ${sCls}">${status}</span></td>
           <td>${job.model || '-'}</td>
           <td>${job.epochs || '-'}</td>
@@ -126,6 +126,8 @@ function renderJobs(jobs) {
           <td style="font-size:.82rem;">${submitted}</td>
           <td>${job.gpu_id !== '' && job.gpu_id !== undefined ? 'GPU ' + job.gpu_id : '-'}</td>
           <td class="text-nowrap">
+            <button class="btn btn-outline-secondary btn-sm mr-1"
+                    onclick="showDetails('${id}')">Details</button>
             <button class="btn btn-outline-secondary btn-sm mr-1"
                     onclick="showLogs('${id}')">Logs</button>
             ${canCancel ? `
@@ -180,6 +182,76 @@ function cancelJob(jobId, btn) {
         .then(r => r.json())
         .then(() => fetchAll())
         .catch(err => { btn.disabled = false; alert('Cancel failed: ' + err); });
+}
+
+function fmtTs(ts) {
+    if (!ts) return '-';
+    const d = new Date(ts);
+    return isNaN(d) ? ts : d.toLocaleString();
+}
+
+function showDetails(jobId) {
+    document.getElementById('detailsJobId').textContent = jobId.slice(0, 8);
+    document.getElementById('detailsContent').innerHTML = 'Loading...';
+    $('#detailsModal').modal('show');
+
+    fetch(`/api/jobs/${jobId}`)
+        .then(r => r.json())
+        .then(job => {
+            if (job.error) {
+                document.getElementById('detailsContent').textContent = job.error;
+                return;
+            }
+
+            const row = (k, v) => `
+                <tr>
+                    <th style="width:180px; font-weight:600; color:#374151;">${k}</th>
+                    <td><code style="font-size:.85rem;">${v === '' || v === undefined || v === null ? '-' : v}</code></td>
+                </tr>`;
+
+            const statusCls = STATUS_CLASS[job.status] || 's-pending';
+            const gpuLabel = (job.gpu_id === '' || job.gpu_id === undefined || job.gpu_id === null)
+                ? '-' : `GPU ${job.gpu_id}`;
+
+            document.getElementById('detailsContent').innerHTML = `
+                <div style="margin-bottom:12px;">
+                    <span class="status-badge ${statusCls}">${job.status || '-'}</span>
+                    <span class="priority-dot p-${job.priority || 'medium'}"></span>
+                    <span style="font-size:.9rem; color:#6b7280;">${job.priority || '-'} priority</span>
+                </div>
+
+                <h6 style="margin-top:12px; font-weight:700;">Training Parameters</h6>
+                <table class="table table-sm table-bordered">
+                    <tbody>
+                        ${row('Model', job.model)}
+                        ${row('Epochs', job.epochs)}
+                        ${row('Batch Size', job.batch_size)}
+                        ${row('Image Size', job.imgsz)}
+                        ${row('Learning Rate (lr0)', job.lr0)}
+                        ${row('Optimizer', job.optimizer)}
+                        ${row('Patience', job.patience)}
+                        ${row('Workers', job.workers)}
+                        ${row('Dataset', job.dataset)}
+                    </tbody>
+                </table>
+
+                <h6 style="margin-top:16px; font-weight:700;">Execution</h6>
+                <table class="table table-sm table-bordered">
+                    <tbody>
+                        ${row('Job ID', job.job_id)}
+                        ${row('User', job.user)}
+                        ${row('GPU', gpuLabel)}
+                        ${row('Container ID', job.container_id ? job.container_id.slice(0, 12) : '-')}
+                        ${row('Submitted', fmtTs(job.submitted_at))}
+                        ${row('Started', fmtTs(job.started_at))}
+                        ${row('Finished', fmtTs(job.finished_at))}
+                    </tbody>
+                </table>
+            `;
+        })
+        .catch(err => {
+            document.getElementById('detailsContent').textContent = 'Error: ' + err;
+        });
 }
 
 function showLogs(jobId) {
