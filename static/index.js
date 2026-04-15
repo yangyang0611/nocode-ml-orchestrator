@@ -34,7 +34,40 @@ function handleFiles(files) {
     }
 
     uploadFiles([file]);
-    dropZone.innerHTML = `<p>Uploaded: ${file.name}</p>`;
+}
+
+function renderUploadedState(filename) {
+    dropZone.innerHTML = `
+        <div class="uploaded-file">
+            <p><strong>📦 ${filename}</strong></p>
+            <div class="upload-actions" style="display:flex; gap:8px; justify-content:center; margin-top:8px;">
+                <button class="btn btn-outline-danger btn-sm" type="button" onclick="removeUpload()">Remove</button>
+                <button class="btn btn-outline-primary btn-sm" type="button" onclick="reuploadFile()">Re-upload</button>
+            </div>
+        </div>`;
+}
+
+function reuploadFile() {
+    fileInput.value = '';
+    fileInput.click();
+}
+
+function removeUpload() {
+    fetch('/upload', { method: 'DELETE' })
+        .then(r => r.json())
+        .then(() => {
+            datasetFilename = null;
+            fileInput.value = '';
+            const uploadStatus = document.getElementById('uploadStatus');
+            uploadStatus.style.display = 'none';
+            uploadStatus.className = '';
+            dropZone.innerHTML = '<p>Drag & Drop a <strong>.zip</strong> file here</p><p class="small text-muted">(YOLO dataset: images + matching .txt labels)</p><p>or</p><button class="btn btn-primary btn-sm" onclick="document.getElementById(\'fileInput\').click()">Select .zip File</button>';
+            document.getElementById('configureCard').classList.add('card-disabled');
+            document.getElementById('actionsCard').classList.add('card-disabled');
+            document.getElementById('downloadDataset').disabled = true;
+            document.getElementById('nextStepBanner').style.display = 'none';
+        })
+        .catch(() => showUploadStatus(false, 'Failed to remove upload.'));
 }
 
 function uploadFiles(files) {
@@ -57,12 +90,15 @@ function uploadFiles(files) {
         console.log('Upload complete, hiding upload spinner');
         if (spinner) spinner.style.display = 'none';
 
-        if (data.message) {
-            showUploadStatus(true, 'Files uploaded successfully!');
+        if (data.datasetFilename) {
+            showUploadStatus(true, data.message || 'Files uploaded successfully!');
             datasetFilename = data.datasetFilename;
+            renderUploadedState(files[0].name);
             document.getElementById('resetBtn').style.display = 'block';
             document.getElementById('configureCard').classList.remove('card-disabled');
             document.getElementById('actionsCard').classList.remove('card-disabled');
+        } else if (data.error) {
+            showUploadStatus(false, data.error);
         }
     })
     .catch(() => {

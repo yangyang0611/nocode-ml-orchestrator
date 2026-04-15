@@ -135,11 +135,12 @@ def rotate_image_and_labels(image_path, label_path, output_image_path, output_la
         raise ValueError("Rotation angle must be 90, 180, or 270 degrees")
     
     img = Image.open(image_path)
-    rotated_img = img.rotate(angle, expand=True)
+    # Clockwise rotation: PIL rotates CCW for positive angles, so negate.
+    rotated_img = img.rotate(-angle, expand=True)
     rotated_img.save(output_image_path)
     img.close()
     print(f"Rotated image saved to {output_image_path}")
-    
+
     with open(label_path, 'r') as f:
         lines = f.readlines()
 
@@ -155,8 +156,9 @@ def rotate_image_and_labels(image_path, label_path, output_image_path, output_la
         height_bbox = float(parts[4])
 
         if angle == 90:
-            new_x_center = y_center
-            new_y_center = 1 - x_center
+            # Clockwise 90°
+            new_x_center = 1 - y_center
+            new_y_center = x_center
             new_width_bbox = height_bbox
             new_height_bbox = width_bbox
         elif angle == 180:
@@ -165,8 +167,9 @@ def rotate_image_and_labels(image_path, label_path, output_image_path, output_la
             new_width_bbox = width_bbox
             new_height_bbox = height_bbox
         elif angle == 270:
-            new_x_center = 1 - y_center
-            new_y_center = x_center
+            # Clockwise 270°
+            new_x_center = y_center
+            new_y_center = 1 - x_center
             new_width_bbox = height_bbox
             new_height_bbox = width_bbox
 
@@ -228,12 +231,14 @@ def validate_yolo_zip(zip_path):
     except zipfile.BadZipFile:
         return False, "Uploaded file is not a valid .zip archive.", {}
 
-    stems_with_label = {os.path.splitext(n)[0] for n in names if n.lower().endswith('.txt')}
+    label_stems = {os.path.splitext(os.path.basename(n))[0]
+                   for n in names if n.lower().endswith('.txt')}
     images = [n for n in names if n.lower().endswith(IMAGE_EXTS)]
     if not images:
         return False, "Zip contains no images (.png/.jpg/.jpeg).", {"images": 0}
 
-    matched = [n for n in images if os.path.splitext(n)[0] in stems_with_label]
+    matched = [n for n in images
+               if os.path.splitext(os.path.basename(n))[0] in label_stems]
     if not matched:
         return False, "No image has a matching .txt label file in the zip.", {
             "images": len(images), "matched": 0,
@@ -273,6 +278,21 @@ def upload():
         "stats": stats,
     }), 200
 
+@app.route('/upload', methods=['DELETE'])
+def remove_upload():
+    clear_upload_folder()
+    removed = []
+    for fname in ("uploaded_dataset.zip",):
+        fpath = os.path.join(PROCESSED_FOLDER, fname)
+        if os.path.exists(fpath):
+            try:
+                os.remove(fpath)
+                removed.append(fname)
+            except OSError as e:
+                return jsonify({"error": f"Failed to remove {fname}: {e}"}), 500
+    return jsonify({"message": "Upload removed", "removed": removed}), 200
+
+
 @app.route('/uploads/<filename>')
 def uploaded_file(filename):
     response = make_response(send_from_directory(UPLOAD_FOLDER, filename))
@@ -306,12 +326,21 @@ def process():
     unzip_file(dataset_path, unzip_dir)
     print(f"Unzipped dataset to {unzip_dir}")
 
+    # Build basename -> label path index so images and labels can live in
+    # separate directories (e.g. images/ and labels/).
+    label_index = {}
+    for r, _, fs in os.walk(unzip_dir):
+        for fn in fs:
+            if fn.lower().endswith('.txt'):
+                label_index[os.path.splitext(fn)[0]] = os.path.join(r, fn)
+
     for root, dirs, files in os.walk(unzip_dir):
         for file in files:
             if file.lower().endswith(IMAGE_EXTS):
                 original_img_path = os.path.join(root, file)
-                original_label_path = os.path.splitext(original_img_path)[0] + '.txt'
-                if not os.path.exists(original_label_path):
+                stem = os.path.splitext(file)[0]
+                original_label_path = label_index.get(stem)
+                if not original_label_path or not os.path.exists(original_label_path):
                     print(f"Skipping {original_img_path}: no matching .txt label")
                     continue
                 final_img_path = os.path.join(PROCESSED_FILES_FOLDER, file)
