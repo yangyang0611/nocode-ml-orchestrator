@@ -54,6 +54,10 @@ function submitJob() {
         showError('Please select a dataset.');
         return;
     }
+    if (!model) {
+        showError('Please complete model selection (Family → Version → Size).');
+        return;
+    }
     if (isNaN(epochs) || epochs < 1) {
         showError('Epochs must be at least 1.');
         return;
@@ -119,10 +123,8 @@ function resetForm() {
     document.getElementById('lr0').value = 0.01;
     document.getElementById('optimizer').value = 'auto';
     document.getElementById('patience').value = 50;
-    // Reset model to nano
-    document.querySelectorAll('.model-card').forEach(c => c.classList.remove('selected'));
-    document.querySelector('[data-model="yolov8n.pt"]').classList.add('selected');
-    document.getElementById('model').value = 'yolov8n.pt';
+    // Reset model selector to default (YOLO → YOLOv8 → m)
+    resetModelSelector();
     // Reset priority to medium
     document.querySelectorAll('.priority-btn').forEach(b => b.className = 'priority-btn');
     document.querySelector('[data-value="medium"]').classList.add('sel-medium');

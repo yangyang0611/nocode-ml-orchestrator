@@ -33,21 +33,54 @@
         select.form-control { padding: 0 12px; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236b7280' d='M6 8L1 3h10z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; }
         select.form-control:disabled { opacity: .6; cursor: not-allowed; }
 
-        /* ── Model cards ── */
-        .model-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-        .model-card {
-            border: 2px solid var(--border); border-radius: 12px; padding: 14px 12px;
+        /* ── Model Selector (3-step) ── */
+        .family-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .family-card {
+            border: 2px solid var(--border); border-radius: 12px; padding: 16px 12px;
             cursor: pointer; transition: all .15s; text-align: center; background: #fafbff;
         }
-        .model-card:hover { border-color: var(--primary); background: #f0f4ff; }
-        .model-card.selected { border-color: var(--primary); background: #eef1fd; }
-        .model-card.selected .model-name { color: var(--primary); }
-        .model-badge { font-size: .65rem; font-weight: 700; padding: 2px 8px; border-radius: 20px; margin-bottom: 6px; display: inline-block; }
-        .badge-nano   { background: #e0fdf4; color: #065f46; }
-        .badge-small  { background: #eff6ff; color: #1e40af; }
-        .badge-medium { background: #fef3c7; color: #92400e; }
-        .model-name { font-weight: 700; font-size: .9rem; color: var(--text); }
-        .model-desc { font-size: .72rem; color: var(--muted); margin-top: 3px; }
+        .family-card:hover { border-color: var(--primary); background: #f0f4ff; }
+        .family-card.active { border-color: var(--primary); background: #eef1fd; }
+        .family-card.active .family-name { color: var(--primary); }
+        .family-icon { font-size: 1.4rem; margin-bottom: 4px; }
+        .family-name { font-weight: 700; font-size: .9rem; color: var(--text); }
+        .family-desc { font-size: .72rem; color: var(--muted); margin-top: 2px; }
+
+        .step-sub-label {
+            font-size: .72rem; font-weight: 700; text-transform: uppercase;
+            letter-spacing: .06em; color: var(--muted); margin: 14px 0 8px;
+        }
+
+        .version-row { display: flex; flex-wrap: wrap; gap: 8px; }
+        .version-pill {
+            padding: 6px 16px; border: 2px solid var(--border); border-radius: 20px;
+            cursor: pointer; font-size: .82rem; font-weight: 600; color: var(--muted);
+            background: #fafbff; transition: all .15s; user-select: none;
+        }
+        .version-pill:hover { border-color: var(--primary); color: var(--primary); background: #f0f4ff; }
+        .version-pill.active { border-color: var(--primary); background: var(--primary); color: #fff; }
+        .version-pill .v-year { font-size: .65rem; font-weight: 400; opacity: .8; margin-left: 4px; }
+
+        .size-row { display: flex; flex-wrap: wrap; gap: 8px; }
+        .size-btn {
+            width: 68px; padding: 9px 0; border: 2px solid var(--border); border-radius: 10px;
+            cursor: pointer; text-align: center; background: #fafbff; transition: all .15s; user-select: none;
+        }
+        .size-btn:hover { border-color: var(--primary); background: #f0f4ff; }
+        .size-btn.active { border-color: var(--primary); background: #eef1fd; }
+        .size-btn.active .sz-label { color: var(--primary); }
+        .sz-label { font-size: .9rem; font-weight: 700; color: var(--text); display: block; }
+        .sz-mb    { font-size: .65rem; color: var(--muted); display: block; margin-top: 2px; }
+
+        .model-summary {
+            margin-top: 12px; padding: 10px 14px; border-radius: 8px;
+            background: #eef1fd; border: 1px solid #c7d2fe;
+            font-size: .82rem; color: #3730a3; font-weight: 500;
+        }
+        .step-placeholder {
+            padding: 10px 14px; border-radius: 8px; background: #f9fafb;
+            border: 1.5px dashed var(--border); color: var(--muted); font-size: .82rem;
+        }
 
         /* ── Number inputs ── */
         .num-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 18px; }
@@ -127,6 +160,7 @@
         <a class="nav-item nav-link" href="/">Preprocessing</a>
         <a class="nav-item nav-link active" href="/train">Submit Job</a>
         <a class="nav-item nav-link" href="/dashboard">Dashboard</a>
+        <a class="nav-item nav-link" href="/inference">Inference</a>
     </div>
 </nav>
 
@@ -137,11 +171,13 @@
     <a href="/train" class="step active"><span class="step-num">2</span>Submit Job</a>
     <span class="step-divider">›</span>
     <a href="/dashboard" class="step"><span class="step-num">3</span>Monitor</a>
+    <span class="step-divider">›</span>
+    <a href="/inference" class="step"><span class="step-num">4</span>Inference</a>
 </div>
 
 <div class="page">
     <div class="page-title">Submit Training Job</div>
-    <div class="page-subtitle">Configure your YOLOv8 training run and join the queue.</div>
+    <div class="page-subtitle">Choose a model family, version, and size — then configure training parameters and join the queue.</div>
 
     <div class="card">
 
@@ -158,24 +194,34 @@
         <!-- Model -->
         <div class="card-section">
             <div class="section-label">Model</div>
-            <div class="model-grid">
-                <div class="model-card selected" data-model="yolov8n.pt" onclick="selectModel(this)">
-                    <span class="model-badge badge-nano">NANO</span>
-                    <div class="model-name">YOLOv8n</div>
-                    <div class="model-desc">Fastest · lowest memory</div>
+
+            <!-- ① Family -->
+            <div class="step-sub-label">① Model Family</div>
+            <div class="family-row">
+                <div class="family-card active" data-family="yolo" onclick="selectFamily(this)">
+                    <div class="family-icon">🎯</div>
+                    <div class="family-name">YOLO</div>
+                    <div class="family-desc">速度派 · 2020 – 2024</div>
                 </div>
-                <div class="model-card" data-model="yolov8s.pt" onclick="selectModel(this)">
-                    <span class="model-badge badge-small">SMALL</span>
-                    <div class="model-name">YOLOv8s</div>
-                    <div class="model-desc">Balanced speed &amp; accuracy</div>
-                </div>
-                <div class="model-card" data-model="yolov8m.pt" onclick="selectModel(this)">
-                    <span class="model-badge badge-medium">MEDIUM</span>
-                    <div class="model-name">YOLOv8m</div>
-                    <div class="model-desc">Higher accuracy · more VRAM</div>
+                <div class="family-card" data-family="transformer" onclick="selectFamily(this)">
+                    <div class="family-icon">⚡</div>
+                    <div class="family-name">Transformer</div>
+                    <div class="family-desc">精度 / 開放詞彙 · 2024 – 2025</div>
                 </div>
             </div>
-            <input type="hidden" id="model" value="yolov8n.pt">
+
+            <!-- ② Version -->
+            <div class="step-sub-label">② Version</div>
+            <div class="version-row" id="versionRow"></div>
+
+            <!-- ③ Size -->
+            <div class="step-sub-label">③ Size</div>
+            <div class="step-placeholder" id="sizePlaceholder">← Select a version first</div>
+            <div class="size-row" id="sizeRow" style="display:none;"></div>
+
+            <!-- Summary -->
+            <div class="model-summary" id="modelSummary" style="display:none;"></div>
+            <input type="hidden" id="model" value="">
         </div>
 
         <!-- Training Parameters -->
@@ -267,46 +313,167 @@
 })();
 </script>
 <script>
-// Models with Transformer layers → AdamW + lr 0.001; rest → SGD + lr 0.01
-const TRANSFORMER_MODELS = ['rtdetr-l.pt', 'rtdetr-x.pt'];
+// ── Model Catalog ─────────────────────────────────────────────────────────
+const MODEL_CATALOG = {
+    yolo: {
+        versions: {
+            'YOLOv5':  { year: 2020, desc: '輕量、廣泛部署的先驅', sizes: [
+                {id:'yolov5nu.pt', label:'n', mb:4},   {id:'yolov5su.pt', label:'s', mb:14},
+                {id:'yolov5mu.pt', label:'m', mb:42},  {id:'yolov5lu.pt', label:'l', mb:91},
+                {id:'yolov5xu.pt', label:'x', mb:168},
+            ]},
+            'YOLOv8':  { year: 2023, desc: '主流選擇，文件齊全', sizes: [
+                {id:'yolov8n.pt',  label:'n', mb:6},   {id:'yolov8s.pt',  label:'s', mb:22},
+                {id:'yolov8m.pt',  label:'m', mb:50},  {id:'yolov8l.pt',  label:'l', mb:87},
+                {id:'yolov8x.pt',  label:'x', mb:131},
+            ]},
+            'YOLOv9':  { year: 2024, desc: 'GELAN + PGI 深度訓練架構', sizes: [
+                {id:'yolov9c.pt',  label:'c', mb:51},  {id:'yolov9e.pt',  label:'e', mb:117},
+            ]},
+            'YOLOv10': { year: 2024, desc: 'NMS-free 端對端推論', sizes: [
+                {id:'yolov10n.pt', label:'n', mb:5},   {id:'yolov10s.pt', label:'s', mb:15},
+                {id:'yolov10m.pt', label:'m', mb:32},  {id:'yolov10b.pt', label:'b', mb:37},
+                {id:'yolov10l.pt', label:'l', mb:49},  {id:'yolov10x.pt', label:'x', mb:56},
+            ]},
+            'YOLO11':  { year: 2024, desc: 'Ultralytics 最新世代', sizes: [
+                {id:'yolo11n.pt',  label:'n', mb:5},   {id:'yolo11s.pt',  label:'s', mb:19},
+                {id:'yolo11m.pt',  label:'m', mb:38},  {id:'yolo11l.pt',  label:'l', mb:49},
+                {id:'yolo11x.pt',  label:'x', mb:109},
+            ]},
+        }
+    },
+    transformer: {
+        versions: {
+            'RT-DETR':       { year: 2024, desc: 'NMS-free 即時 Transformer 偵測器', sizes: [
+                {id:'rtdetr-l.pt',        label:'l', mb:136}, {id:'rtdetr-x.pt',        label:'x', mb:237},
+            ]},
+            'YOLO-World v2': { year: 2024, desc: '零樣本開放詞彙偵測', sizes: [
+                {id:'yolov8s-worldv2.pt', label:'s', mb:28},  {id:'yolov8m-worldv2.pt', label:'m', mb:89},
+                {id:'yolov8l-worldv2.pt', label:'l', mb:200}, {id:'yolov8x-worldv2.pt', label:'x', mb:277},
+            ]},
+        }
+    }
+};
 
-function getAutoLr() {
-    const model = document.getElementById('model').value;
-    return TRANSFORMER_MODELS.includes(model) ? 0.001 : 0.01;
+const SIZE_NAMES = {n:'Nano', s:'Small', m:'Medium', l:'Large', x:'XLarge', c:'Compact', e:'Extended', b:'Balanced'};
+
+// ── Selection state ───────────────────────────────────────────────────────
+let _family  = 'yolo';
+let _version = null;
+let _sizeId  = null;
+
+// ── Step 1 ────────────────────────────────────────────────────────────────
+function selectFamily(el) {
+    document.querySelectorAll('.family-card').forEach(c => c.classList.remove('active'));
+    el.classList.add('active');
+    _family = el.dataset.family; _version = null; _sizeId = null;
+    document.getElementById('model').value = '';
+    _renderVersionRow(); _renderSizeRow(null); _updateSummary();
+    if (document.getElementById('optimizer').value === 'auto') updateOptimizerHint('auto');
 }
 
-function selectModel(el) {
-    document.querySelectorAll('.model-card').forEach(c => c.classList.remove('selected'));
-    el.classList.add('selected');
-    document.getElementById('model').value = el.dataset.model;
-    // If optimizer is auto, sync lr0
+// ── Step 2 ────────────────────────────────────────────────────────────────
+function selectVersion(el) {
+    document.querySelectorAll('.version-pill').forEach(c => c.classList.remove('active'));
+    el.classList.add('active');
+    _version = el.dataset.version; _sizeId = null;
+    document.getElementById('model').value = '';
+    _renderSizeRow(_version); _updateSummary();
+}
+
+// ── Step 3 ────────────────────────────────────────────────────────────────
+function selectSize(el) {
+    document.querySelectorAll('.size-btn').forEach(c => c.classList.remove('active'));
+    el.classList.add('active');
+    _sizeId = el.dataset.id;
+    document.getElementById('model').value = _sizeId;
+    _updateSummary();
     if (document.getElementById('optimizer').value === 'auto') {
         document.getElementById('lr0').value = getAutoLr();
         updateOptimizerHint('auto');
     }
 }
 
+// ── Render helpers ────────────────────────────────────────────────────────
+function _renderVersionRow() {
+    const row = document.getElementById('versionRow');
+    row.innerHTML = Object.entries(MODEL_CATALOG[_family].versions).map(([name, info]) =>
+        `<div class="version-pill" data-version="${name}" onclick="selectVersion(this)">
+            ${name}<span class="v-year">'${String(info.year).slice(2)}</span>
+         </div>`
+    ).join('');
+}
+
+function _renderSizeRow(version) {
+    const row = document.getElementById('sizeRow');
+    const ph  = document.getElementById('sizePlaceholder');
+    if (!version) { row.style.display = 'none'; ph.style.display = 'block'; return; }
+    row.innerHTML = MODEL_CATALOG[_family].versions[version].sizes.map(s =>
+        `<div class="size-btn" data-id="${s.id}" onclick="selectSize(this)">
+            <span class="sz-label">${s.label.toUpperCase()}</span>
+            <span class="sz-mb">${s.mb} MB</span>
+         </div>`
+    ).join('');
+    row.style.display = 'flex'; ph.style.display = 'none';
+}
+
+function _updateSummary() {
+    const el = document.getElementById('modelSummary');
+    if (!_version || !_sizeId) { el.style.display = 'none'; return; }
+    const info = MODEL_CATALOG[_family].versions[_version];
+    const size = info.sizes.find(s => s.id === _sizeId);
+    el.style.display = 'block';
+    el.innerHTML = `✅ <strong>${_version} ${SIZE_NAMES[size.label] || size.label.toUpperCase()}</strong>&ensp;·&ensp;${size.mb} MB&ensp;·&ensp;${info.year}&ensp;·&ensp;${info.desc}`;
+}
+
+// ── Optimizer / LR ────────────────────────────────────────────────────────
+function getAutoLr() { return _family === 'transformer' ? 0.001 : 0.01; }
+
 const OPTIMIZER_HINTS = {
-    auto:     '',   // filled dynamically
-    SGD:      'Classic momentum-based optimizer. Reliable for most detection tasks.',
-    Adam:     'Adaptive learning rate. Good convergence but higher memory usage.',
-    AdamW:    'Adam with decoupled weight decay. Often better generalisation than Adam.',
-    NAdam:    'Adam with Nesterov momentum. Slightly faster convergence than Adam.',
-    RAdam:    'Rectified Adam. Stable early training, no warm-up needed.',
-    RMSProp:  'Good for recurrent/noisy gradients. Less common for YOLO.',
+    auto:    '',
+    SGD:     'Classic momentum-based optimizer. Reliable for most detection tasks.',
+    Adam:    'Adaptive learning rate. Good convergence but higher memory usage.',
+    AdamW:   'Adam with decoupled weight decay. Often better generalisation than Adam.',
+    NAdam:   'Adam with Nesterov momentum. Slightly faster convergence than Adam.',
+    RAdam:   'Rectified Adam. Stable early training, no warm-up needed.',
+    RMSProp: 'Good for recurrent/noisy gradients. Less common for YOLO.',
 };
 
 function updateOptimizerHint(val) {
     const hint = document.getElementById('optimizerHint');
     if (val === 'auto') {
+        const opName = _family === 'transformer' ? 'AdamW' : 'SGD';
         const lr = getAutoLr();
-        const opName = TRANSFORMER_MODELS.includes(document.getElementById('model').value) ? 'AdamW' : 'SGD';
         hint.textContent = `Auto-selects ${opName} for this model with lr=${lr}. You can still override the Learning Rate above.`;
         document.getElementById('lr0').value = lr;
     } else {
         hint.textContent = OPTIMIZER_HINTS[val] || '';
     }
 }
+
+// ── Init & Reset ──────────────────────────────────────────────────────────
+function initModelSelector() {
+    _renderVersionRow();
+    // Default: YOLOv8 → m
+    const v8pill = [...document.querySelectorAll('.version-pill')].find(p => p.dataset.version === 'YOLOv8');
+    if (v8pill) {
+        v8pill.classList.add('active'); _version = 'YOLOv8';
+        _renderSizeRow('YOLOv8');
+        const mBtn = [...document.querySelectorAll('.size-btn')].find(b => b.dataset.id === 'yolov8m.pt');
+        if (mBtn) { mBtn.classList.add('active'); _sizeId = 'yolov8m.pt'; document.getElementById('model').value = 'yolov8m.pt'; }
+        _updateSummary();
+    }
+}
+
+function resetModelSelector() {
+    document.querySelectorAll('.family-card').forEach(c => c.classList.remove('active'));
+    document.querySelector('[data-family="yolo"]').classList.add('active');
+    _family = 'yolo'; _version = null; _sizeId = null;
+    document.getElementById('model').value = '';
+    initModelSelector();
+}
+
+document.addEventListener('DOMContentLoaded', initModelSelector);
 </script>
 <script src="/static/train.js?v=3"></script>
 </body>

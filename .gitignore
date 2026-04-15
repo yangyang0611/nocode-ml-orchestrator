@@ -8,3 +8,10 @@ processed/
 CLAUDE.md
 results/
 models/
+
+# Qualcomm AI Hub compiled model files (large binaries)
+*.dlc
+*.bin.dlc
+
+# Per-request inference outputs
+inference_runs/

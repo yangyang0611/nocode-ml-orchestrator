@@ -209,6 +209,23 @@ def train():
 def dashboard():
     return render_template('dashboard.html')
 
+
+@app.route('/inference')
+def inference_page():
+    return render_template('inference.html')
+
+
+INFERENCE_RUNS_FOLDER = 'inference_runs/'
+ensure_dir_exists(INFERENCE_RUNS_FOLDER)
+
+
+@app.route('/inference_runs/<req_id>/<path:filename>')
+def inference_run_file(req_id, filename):
+    safe_dir = os.path.abspath(os.path.join(INFERENCE_RUNS_FOLDER, req_id))
+    if not safe_dir.startswith(os.path.abspath(INFERENCE_RUNS_FOLDER)):
+        return jsonify({"error": "invalid path"}), 400
+    return send_from_directory(safe_dir, filename)
+
 def clear_upload_folder():
     for filename in os.listdir(UPLOAD_FOLDER):
         file_path = os.path.join(UPLOAD_FOLDER, filename)
@@ -570,6 +587,42 @@ def api_resources():
 @app.route('/api/queue', methods=['GET'])
 def api_queue():
     return jsonify(get_queue_status()), 200
+
+
+# ── Inference API ─────────────────────────────────────────────────────────────
+from job_manager.inference_manager import list_trained_models, run_inference
+
+
+@app.route('/api/models', methods=['GET'])
+def api_list_models():
+    return jsonify(list_trained_models(list_jobs())), 200
+
+
+@app.route('/api/inference', methods=['POST'])
+def api_inference():
+    job_id = request.form.get('job_id', '').strip()
+    if not job_id:
+        return jsonify({"error": "Missing job_id"}), 400
+
+    f = request.files.get('image')
+    if f is None or not f.filename:
+        return jsonify({"error": "No image uploaded"}), 400
+    if not f.filename.lower().endswith(('.jpg', '.jpeg', '.png')):
+        return jsonify({"error": "Only .jpg/.jpeg/.png images are accepted"}), 400
+
+    try:
+        conf = float(request.form.get('conf', '0.25'))
+    except ValueError:
+        conf = 0.25
+
+    try:
+        result = run_inference(job_id, f.read(), f.filename, conf=conf)
+    except FileNotFoundError as e:
+        return jsonify({"error": str(e)}), 404
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+    return jsonify(result), 200
 
 
 # ── Start scheduler when Flask launches ───────────────────────────────────────

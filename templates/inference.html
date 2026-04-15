@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inference — ML Orchestrator</title>
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/static/shared.css">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <style>
+        .page-wrapper { max-width: 1100px; margin: 112px auto 60px; padding: 0 20px; }
+        .page-title    { font-size: 1.5rem; font-weight: 700; margin-bottom: 6px; letter-spacing: -.02em; }
+        .page-subtitle { color: var(--muted); font-size: .9rem; margin-bottom: 28px; }
+        .section-label { font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin-bottom: 12px; }
+
+        .card-plain { background: #fff; border-radius: 12px; box-shadow: var(--shadow); padding: 22px; margin-bottom: 22px; }
+
+        .model-list { max-height: 300px; overflow-y: auto; border: 1px solid var(--border); border-radius: 8px; }
+        .model-row {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 12px 14px; border-bottom: 1px solid var(--border); cursor: pointer;
+            transition: background .12s;
+        }
+        .model-row:last-child { border-bottom: none; }
+        .model-row:hover { background: #f7f9ff; }
+        .model-row.selected { background: #eaf0ff; border-left: 3px solid var(--primary); }
+        .model-meta { font-size: .78rem; color: var(--muted); margin-top: 2px; }
+        .model-jobid { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .85rem; color: var(--text); }
+
+        .drop-zone {
+            border: 2px dashed var(--border); border-radius: 10px; padding: 36px; text-align: center;
+            color: var(--muted); transition: border-color .15s, background .15s; cursor: pointer;
+        }
+        .drop-zone.dragover { border-color: var(--primary); background: #eef2ff; color: var(--primary); }
+        .file-input { display: none; }
+
+        .preview-wrap { display: flex; gap: 16px; flex-wrap: wrap; }
+        .preview-wrap > div { flex: 1 1 420px; min-width: 280px; }
+        .preview-label { font-size: .75rem; font-weight: 700; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+        .preview-img { width: 100%; border-radius: 8px; border: 1px solid var(--border); background: #f7f9ff; min-height: 200px; display: block; }
+
+        .run-btn {
+            background: var(--primary); color: #fff; border: none; border-radius: 8px;
+            padding: 10px 22px; font-weight: 600; font-size: .9rem; transition: background .15s;
+        }
+        .run-btn:hover:not(:disabled) { background: var(--primary-dark); }
+        .run-btn:disabled { background: #c2c9e0; cursor: not-allowed; }
+
+        .spinner-ring {
+            display: inline-block; width: 16px; height: 16px;
+            border: 2px solid #eef; border-top-color: var(--primary);
+            border-radius: 50%; animation: spin 1s linear infinite; margin-right: 8px; vertical-align: -3px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .det-table { font-size: .82rem; }
+        .det-table th { font-size: .72rem; text-transform: uppercase; color: var(--muted); }
+
+        .empty-state { text-align: center; padding: 32px; color: var(--muted); font-size: .9rem; }
+    </style>
+</head>
+<body>
+
+<!-- Navbar -->
+<nav class="navbar navbar-expand-lg">
+    <a class="navbar-brand" href="/">ML Orchestrator</a>
+    <div class="navbar-nav">
+        <a class="nav-item nav-link" href="/">Preprocessing</a>
+        <a class="nav-item nav-link" href="/train">Submit Job</a>
+        <a class="nav-item nav-link" href="/dashboard">Dashboard</a>
+        <a class="nav-item nav-link active" href="/inference">Inference</a>
+    </div>
+</nav>
+
+<!-- Step bar -->
+<div class="step-bar">
+    <a href="/" class="step"><span class="step-num">1</span>Preprocessing</a>
+    <span class="step-divider">›</span>
+    <a href="/train" class="step"><span class="step-num">2</span>Submit Job</a>
+    <span class="step-divider">›</span>
+    <a href="/dashboard" class="step"><span class="step-num">3</span>Monitor</a>
+    <span class="step-divider">›</span>
+    <a href="/inference" class="step active"><span class="step-num">4</span>Inference</a>
+</div>
+
+<div class="page-wrapper">
+
+    <div class="page-title">Run Inference</div>
+    <div class="page-subtitle">Select a trained model, upload an image, and get predictions.</div>
+
+    <!-- Model picker -->
+    <div class="card-plain">
+        <div class="d-flex align-items-center justify-content-between mb-2">
+            <div class="section-label mb-0">1. Select Trained Model</div>
+            <button id="refreshModels" class="btn btn-sm" style="border:1.5px solid var(--border); background:#fff; font-size:.78rem; font-weight:600;">↻ Refresh</button>
+        </div>
+        <div id="modelList" class="model-list">
+            <div class="empty-state">Loading models…</div>
+        </div>
+    </div>
+
+    <!-- Image uploader -->
+    <div class="card-plain">
+        <div class="section-label">2. Upload Image</div>
+        <div class="drop-zone" id="dropZone">
+            <p class="mb-2">Drag &amp; drop a <strong>.jpg</strong> / <strong>.png</strong> here</p>
+            <p class="mb-2">or</p>
+            <button type="button" class="btn btn-primary btn-sm" onclick="document.getElementById('imageInput').click()">Select Image</button>
+            <input type="file" id="imageInput" class="file-input" accept="image/jpeg,image/png">
+            <div id="fileName" class="mt-2" style="font-size:.82rem; color: var(--text);"></div>
+        </div>
+
+        <div class="mt-3 d-flex align-items-center" style="gap: 14px; flex-wrap: wrap;">
+            <label for="confRange" style="font-size:.82rem; color: var(--muted); margin: 0;">Confidence:</label>
+            <input type="range" id="confRange" min="0.05" max="0.9" step="0.05" value="0.25" style="flex:1; max-width: 220px;">
+            <span id="confValue" style="font-size:.85rem; font-weight:600;">0.25</span>
+            <button id="runBtn" class="run-btn ml-auto" disabled>Run Inference</button>
+        </div>
+
+        <div id="status" class="mt-3" style="font-size:.88rem;"></div>
+    </div>
+
+    <!-- Results -->
+    <div class="card-plain" id="resultCard" style="display:none;">
+        <div class="section-label">Result</div>
+        <div class="preview-wrap">
+            <div>
+                <div class="preview-label">Input</div>
+                <img id="inputPreview" class="preview-img" alt="input">
+            </div>
+            <div>
+                <div class="preview-label">Annotated</div>
+                <img id="outputPreview" class="preview-img" alt="output">
+            </div>
+        </div>
+
+        <div class="mt-3">
+            <div class="preview-label">Detections (<span id="detCount">0</span>)</div>
+            <div class="table-responsive">
+                <table class="table table-sm det-table mb-0">
+                    <thead>
+                        <tr><th>#</th><th>Label</th><th>Conf</th><th>Box (x1,y1,x2,y2)</th></tr>
+                    </thead>
+                    <tbody id="detBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+(function() {
+    if (localStorage.getItem('mlorch_step1_done'))
+        document.querySelector('.step-bar a[href="/"]').classList.add('done');
+    if (localStorage.getItem('mlorch_step2_done'))
+        document.querySelector('.step-bar a[href="/train"]').classList.add('done');
+    document.querySelector('.step-bar a[href="/dashboard"]').classList.add('done');
+})();
+</script>
+<script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.bundle.min.js"></script>
+<script src="/static/inference.js?v=1"></script>
+</body>
+</html>
