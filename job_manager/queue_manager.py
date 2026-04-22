@@ -105,6 +105,30 @@ def cancel_job(job_id: str) -> bool:
     return True
 
 
+def delete_job(job_id: str) -> bool:
+    """
+    刪除 job 紀錄。對任意狀態都有效：
+    - pending/running：先標記 cancelled（讓 scheduler 停 container/釋放 GPU），再移除 hash
+    - completed/failed/cancelled：直接移除 hash
+    同時清掉 priority queue 內的 job_id（若還在排隊）。
+    """
+    job = get_job(job_id)
+    if not job:
+        return False
+
+    # 從所有 priority queue 移除（lrem 找不到不會報錯）
+    for q in PRIORITY_QUEUES.values():
+        _redis.lrem(q, 0, job_id)
+
+    # pending/running 先標記 cancelled，scheduler 會 stop container & release GPU
+    if job["status"] in ("pending", "running"):
+        update_job(job_id, {"status": "cancelled"})
+
+    # 移除 Redis hash
+    _redis.delete(_job_key(job_id))
+    return True
+
+
 def get_queue_status() -> dict:
     """回傳各 priority queue 的等待數量。"""
     return {

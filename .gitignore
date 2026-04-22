@@ -8,6 +8,7 @@ processed/
 CLAUDE.md
 results/
 models/
+docs/
 
 # Qualcomm AI Hub compiled model files (large binaries)
 *.dlc
@@ -15,3 +16,9 @@ models/
 
 # Per-request inference outputs
 inference_runs/
+
+# User-uploaded model weights
+user_models/
+
+# Cached WongKinYiu/yolov9 clone for inference fallback
+yolov9_cache/

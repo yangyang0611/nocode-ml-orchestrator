@@ -1,5 +1,5 @@
 const state = {
-    selectedJobId: null,
+    selectedModelId: null,
     selectedFile: null,
 };
 
@@ -17,9 +17,18 @@ const outputPreview = document.getElementById('outputPreview');
 const detBody   = document.getElementById('detBody');
 const detCount  = document.getElementById('detCount');
 
+const uploadBtn     = document.getElementById('uploadModelBtn');
+const modelFileInput= document.getElementById('modelFileInput');
+const uploadStatus  = document.getElementById('uploadStatus');
+
 function fmtTime(iso) {
     if (!iso) return '-';
     try { return new Date(iso).toLocaleString(); } catch { return iso; }
+}
+
+function escapeHtml(s) {
+    return String(s ?? '').replace(/[&<>"']/g, c =>
+        ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
 }
 
 async function fetchModels() {
@@ -35,48 +44,113 @@ async function fetchModels() {
 
 function renderModels(models) {
     if (!models.length) {
-        modelList.innerHTML = '<div class="empty-state">No trained models yet. Submit a job from the <a href="/train">training page</a> first.</div>';
+        modelList.innerHTML = '<div class="empty-state">No models yet. Train one from <a href="/train">Submit Job</a> or upload your own <code>.pt</code>.</div>';
         return;
     }
     modelList.innerHTML = '';
     models.forEach(m => {
         const row = document.createElement('div');
         row.className = 'model-row';
-        row.dataset.jobId = m.job_id;
+        row.dataset.modelId = m.id;
+        const isUploaded = m.source === 'uploaded';
+        const pillCls = isUploaded ? 'src-uploaded' : 'src-trained';
+        const pillTxt = isUploaded ? 'UPLOADED' : 'TRAINED';
+
+        const title = isUploaded
+            ? `${escapeHtml(m.name)}`
+            : `${m.id.slice(0, 8)} · ${escapeHtml(m.model)}`;
+        const meta = isUploaded
+            ? `${escapeHtml(m.filename || '')} · ${m.size_mb} MB · uploaded ${fmtTime(m.uploaded_at)}`
+            : `${escapeHtml(m.dataset || '')} · ${m.epochs} epochs · ${m.size_mb} MB · finished ${fmtTime(m.finished_at)}`;
+
         row.innerHTML = `
-            <div>
-                <div class="model-jobid">${m.job_id.slice(0, 8)} · ${escapeHtml(m.model)}</div>
-                <div class="model-meta">
-                    ${escapeHtml(m.dataset || '')} · ${m.epochs} epochs · ${m.size_mb} MB · finished ${fmtTime(m.finished_at)}
+            <div style="flex:1; min-width:0;">
+                <div class="model-jobid">
+                    <span class="source-pill ${pillCls}">${pillTxt}</span>${title}
                 </div>
+                <div class="model-meta">${meta}</div>
             </div>
-            <div>
-                <span class="status-badge s-${m.status || 'completed'}">${m.status || 'completed'}</span>
+            <div class="d-flex align-items-center" style="gap:6px;">
+                ${isUploaded
+                    ? `<button class="model-delete" data-del="${m.id}" title="Remove">✕</button>`
+                    : `<span class="status-badge s-${m.status || 'completed'}">${m.status || 'completed'}</span>`}
             </div>
         `;
-        row.addEventListener('click', () => selectModel(m.job_id));
+        row.addEventListener('click', (e) => {
+            if (e.target.closest('[data-del]')) return;
+            selectModel(m.id);
+        });
+        const delBtn = row.querySelector('[data-del]');
+        if (delBtn) delBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            deleteModel(m.id, m.name);
+        });
         modelList.appendChild(row);
     });
 }
 
-function selectModel(jobId) {
-    state.selectedJobId = jobId;
+function selectModel(modelId) {
+    state.selectedModelId = modelId;
     [...modelList.querySelectorAll('.model-row')].forEach(r => {
-        r.classList.toggle('selected', r.dataset.jobId === jobId);
+        r.classList.toggle('selected', r.dataset.modelId === modelId);
     });
     updateRunBtn();
 }
 
-function escapeHtml(s) {
-    return String(s ?? '').replace(/[&<>"']/g, c =>
-        ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+async function deleteModel(id, name) {
+    if (!confirm(`Remove uploaded model "${name}"? This cannot be undone.`)) return;
+    try {
+        const r = await fetch(`/api/models/${id}`, { method: 'DELETE' });
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        if (state.selectedModelId === id) {
+            state.selectedModelId = null;
+            updateRunBtn();
+        }
+        await fetchModels();
+    } catch (e) {
+        setUploadStatus(`Delete failed: ${e.message}`, 'danger');
+    }
 }
 
 function updateRunBtn() {
-    runBtn.disabled = !(state.selectedJobId && state.selectedFile);
+    runBtn.disabled = !(state.selectedModelId && state.selectedFile);
 }
 
-// ── File handling ────────────────────────────────────────────────────────────
+// ── Upload user model ────────────────────────────────────────────────────────
+function setUploadStatus(msg, type = 'info') {
+    const colors = { info: 'var(--muted)', danger: 'var(--danger)', success: 'var(--success)' };
+    uploadStatus.style.color = colors[type] || colors.info;
+    uploadStatus.innerHTML = msg;
+    uploadStatus.style.display = msg ? 'block' : 'none';
+}
+
+uploadBtn.addEventListener('click', () => modelFileInput.click());
+
+modelFileInput.addEventListener('change', async (e) => {
+    const f = e.target.files[0];
+    e.target.value = '';
+    if (!f) return;
+    if (!/\.pt$/i.test(f.name)) {
+        setUploadStatus('Only .pt files are accepted.', 'danger');
+        return;
+    }
+    const mb = f.size / 1024 / 1024;
+    setUploadStatus(`<span class="spinner-ring"></span>Uploading ${escapeHtml(f.name)} (${mb.toFixed(1)} MB)…`, 'info');
+    const fd = new FormData();
+    fd.append('model', f);
+    try {
+        const r = await fetch('/api/models/upload', { method: 'POST', body: fd });
+        const data = await r.json();
+        if (!r.ok) throw new Error(data.error || `HTTP ${r.status}`);
+        setUploadStatus(`Uploaded ${escapeHtml(data.name)} (${data.size_mb} MB).`, 'success');
+        await fetchModels();
+        selectModel(data.id);
+    } catch (e) {
+        setUploadStatus(`Upload failed: ${e.message}`, 'danger');
+    }
+});
+
+// ── File handling for inference image ────────────────────────────────────────
 function handleFile(file) {
     if (!file) return;
     if (!/\.(jpe?g|png)$/i.test(file.name)) {
@@ -99,7 +173,6 @@ function handleFile(file) {
 }
 
 imageInput.addEventListener('change', e => handleFile(e.target.files[0]));
-
 dropZone.addEventListener('click', (e) => {
     if (e.target.tagName !== 'BUTTON') imageInput.click();
 });
@@ -121,12 +194,12 @@ function setStatus(msg, type = 'info') {
 }
 
 async function runInference() {
-    if (!state.selectedJobId || !state.selectedFile) return;
+    if (!state.selectedModelId || !state.selectedFile) return;
     runBtn.disabled = true;
     setStatus('<span class="spinner-ring"></span>Running inference in container — this may take 20–60 s on first run…', 'info');
 
     const fd = new FormData();
-    fd.append('job_id', state.selectedJobId);
+    fd.append('model_id', state.selectedModelId);
     fd.append('image', state.selectedFile);
     fd.append('conf', confRange.value);
 

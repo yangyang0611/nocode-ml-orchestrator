@@ -11,10 +11,8 @@
     const SERIES = [
         { key: 'train/box_loss', label: 'train/box', color: '#4361ee' },
         { key: 'train/cls_loss', label: 'train/cls', color: '#ef4444' },
-        { key: 'train/dfl_loss', label: 'train/dfl', color: '#f59e0b' },
         { key: 'val/box_loss',   label: 'val/box',   color: '#4361ee', dashed: true },
         { key: 'val/cls_loss',   label: 'val/cls',   color: '#ef4444', dashed: true },
-        { key: 'val/dfl_loss',   label: 'val/dfl',   color: '#f59e0b', dashed: true },
     ];
 
     const mark = s => ({ pending:'⏳', running:'▶', completed:'✓', failed:'✗', cancelled:'⊘' }[s] || '');

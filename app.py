@@ -491,7 +491,7 @@ def api_list_datasets():
 
 # ── Job Orchestration API ─────────────────────────────────────────────────────
 from job_manager.queue_manager import (
-    submit_job, get_job, list_jobs, cancel_job, get_queue_status,
+    submit_job, get_job, list_jobs, cancel_job, delete_job, get_queue_status,
 )
 from job_manager.gpu_manager import get_gpu_status
 from job_manager.docker_manager import get_container_logs
@@ -535,11 +535,38 @@ def api_get_job(job_id):
 
 
 @app.route('/api/jobs/<job_id>', methods=['DELETE'])
-def api_cancel_job(job_id):
-    ok = cancel_job(job_id)
-    if not ok:
-        return jsonify({"error": "Job not found or already finished"}), 404
-    return jsonify({"job_id": job_id, "status": "cancelled"}), 200
+def api_delete_job(job_id):
+    """Delete a job record. Works for any status:
+    - running: stop container, release GPU, then remove record.
+    - pending: remove from queue, then remove record.
+    - completed/failed/cancelled: remove record directly.
+    """
+    job = get_job(job_id)
+    if not job:
+        return jsonify({"error": "Job not found"}), 404
+
+    # Running: synchronously release container + GPU before delete
+    if job.get("status") == "running":
+        from job_manager.docker_manager import stop_container, get_container_status, remove_container
+        from job_manager.gpu_manager import release_gpu
+        cid = job.get("container_id", "")
+        if cid:
+            try:
+                if get_container_status(cid) == "running":
+                    stop_container(cid)
+                else:
+                    remove_container(cid)
+            except Exception as e:
+                print(f"[delete_job] container cleanup error: {e}")
+        gpu_id_str = job.get("gpu_id", "")
+        if gpu_id_str != "":
+            try:
+                release_gpu(int(gpu_id_str))
+            except Exception as e:
+                print(f"[delete_job] gpu release error: {e}")
+
+    delete_job(job_id)
+    return jsonify({"job_id": job_id, "status": "deleted"}), 200
 
 
 import re
@@ -620,19 +647,43 @@ def api_queue():
 
 
 # ── Inference API ─────────────────────────────────────────────────────────────
-from job_manager.inference_manager import list_trained_models, run_inference
+from job_manager.inference_manager import (
+    list_all_models, save_user_model, delete_user_model, run_inference,
+)
 
 
 @app.route('/api/models', methods=['GET'])
 def api_list_models():
-    return jsonify(list_trained_models(list_jobs())), 200
+    return jsonify(list_all_models(list_jobs())), 200
+
+
+@app.route('/api/models/upload', methods=['POST'])
+def api_upload_model():
+    f = request.files.get('model')
+    if f is None or not f.filename:
+        return jsonify({"error": "No model file uploaded"}), 400
+    if not f.filename.lower().endswith('.pt'):
+        return jsonify({"error": "Only .pt files are accepted"}), 400
+    display_name = request.form.get('name', '').strip()
+    try:
+        record = save_user_model(f.read(), f.filename, display_name)
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+    return jsonify(record), 201
+
+
+@app.route('/api/models/<model_id>', methods=['DELETE'])
+def api_delete_model(model_id):
+    if not delete_user_model(model_id):
+        return jsonify({"error": "Model not found or not deletable"}), 404
+    return jsonify({"id": model_id, "deleted": True}), 200
 
 
 @app.route('/api/inference', methods=['POST'])
 def api_inference():
-    job_id = request.form.get('job_id', '').strip()
-    if not job_id:
-        return jsonify({"error": "Missing job_id"}), 400
+    model_id = (request.form.get('model_id') or request.form.get('job_id') or '').strip()
+    if not model_id:
+        return jsonify({"error": "Missing model_id"}), 400
 
     f = request.files.get('image')
     if f is None or not f.filename:
@@ -646,7 +697,7 @@ def api_inference():
         conf = 0.25
 
     try:
-        result = run_inference(job_id, f.read(), f.filename, conf=conf)
+        result = run_inference(model_id, f.read(), f.filename, conf=conf)
     except FileNotFoundError as e:
         return jsonify({"error": str(e)}), 404
     except Exception as e:

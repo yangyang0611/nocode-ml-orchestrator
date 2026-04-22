@@ -199,12 +199,10 @@
             <div class="step-sub-label">① Model Family</div>
             <div class="family-row">
                 <div class="family-card active" data-family="yolo" onclick="selectFamily(this)">
-                    <div class="family-icon">🎯</div>
                     <div class="family-name">YOLO</div>
                     <div class="family-desc">速度派 · 2020 – 2024</div>
                 </div>
                 <div class="family-card" data-family="transformer" onclick="selectFamily(this)">
-                    <div class="family-icon">⚡</div>
                     <div class="family-name">Transformer</div>
                     <div class="family-desc">精度 / 開放詞彙 · 2024 – 2025</div>
                 </div>
@@ -219,8 +217,6 @@
             <div class="step-placeholder" id="sizePlaceholder">← Select a version first</div>
             <div class="size-row" id="sizeRow" style="display:none;"></div>
 
-            <!-- Summary -->
-            <div class="model-summary" id="modelSummary" style="display:none;"></div>
             <input type="hidden" id="model" value="">
         </div>
 
@@ -291,7 +287,6 @@
 
     <!-- Success -->
     <div class="success-card" id="resultCard" style="display:none;">
-        <div class="success-icon">✅</div>
         <div class="success-title">Job Submitted Successfully</div>
         <div class="success-id">Job ID: <code id="resultJobId"></code></div>
         <div style="display:flex; gap:10px; flex-wrap:wrap;">
@@ -417,14 +412,7 @@ function _renderSizeRow(version) {
     row.style.display = 'flex'; ph.style.display = 'none';
 }
 
-function _updateSummary() {
-    const el = document.getElementById('modelSummary');
-    if (!_version || !_sizeId) { el.style.display = 'none'; return; }
-    const info = MODEL_CATALOG[_family].versions[_version];
-    const size = info.sizes.find(s => s.id === _sizeId);
-    el.style.display = 'block';
-    el.innerHTML = `✅ <strong>${_version} ${SIZE_NAMES[size.label] || size.label.toUpperCase()}</strong>&ensp;·&ensp;${size.mb} MB&ensp;·&ensp;${info.year}&ensp;·&ensp;${info.desc}`;
-}
+function _updateSummary() {}
 
 // ── Optimizer / LR ────────────────────────────────────────────────────────
 function getAutoLr() { return _family === 'transformer' ? 0.001 : 0.01; }

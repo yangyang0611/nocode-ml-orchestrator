@@ -26,6 +26,11 @@
         .model-row.selected { background: #eaf0ff; border-left: 3px solid var(--primary); }
         .model-meta { font-size: .78rem; color: var(--muted); margin-top: 2px; }
         .model-jobid { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .85rem; color: var(--text); }
+        .source-pill { display:inline-block; padding:2px 8px; border-radius:10px; font-size:.7rem; font-weight:700; margin-right:6px; letter-spacing:.02em; }
+        .src-trained  { background:#dbeafe; color:#1e40af; }
+        .src-uploaded { background:#ede9fe; color:#6d28d9; }
+        .model-delete { border:none; background:transparent; color:var(--danger); font-size:.8rem; cursor:pointer; padding:4px 8px; }
+        .model-delete:hover { text-decoration: underline; }
 
         .drop-zone {
             border: 2px dashed var(--border); border-radius: 10px; padding: 36px; text-align: center;
@@ -90,12 +95,20 @@
 
     <!-- Model picker -->
     <div class="card-plain">
-        <div class="d-flex align-items-center justify-content-between mb-2">
-            <div class="section-label mb-0">1. Select Trained Model</div>
-            <button id="refreshModels" class="btn btn-sm" style="border:1.5px solid var(--border); background:#fff; font-size:.78rem; font-weight:600;">↻ Refresh</button>
+        <div class="d-flex align-items-center justify-content-between mb-2" style="flex-wrap:wrap; gap:8px;">
+            <div class="section-label mb-0">1. Select Model</div>
+            <div class="d-flex align-items-center" style="gap:8px;">
+                <button id="uploadModelBtn" class="btn btn-sm" style="border:1.5px solid var(--primary); color:var(--primary); background:#fff; font-size:.78rem; font-weight:600;">+ Upload .pt</button>
+                <button id="refreshModels" class="btn btn-sm" style="border:1.5px solid var(--border); background:#fff; font-size:.78rem; font-weight:600;">↻ Refresh</button>
+            </div>
         </div>
+        <input type="file" id="modelFileInput" class="file-input" accept=".pt">
+        <div id="uploadStatus" style="display:none; font-size:.82rem; margin-bottom:8px;"></div>
         <div id="modelList" class="model-list">
             <div class="empty-state">Loading models…</div>
+        </div>
+        <div class="mt-2 text-muted" style="font-size:.72rem;">
+            Trained models come from the pipeline. Uploaded models live under <code>user_models/</code>.
         </div>
     </div>
 
@@ -160,6 +173,6 @@
 </script>
 <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
 <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.bundle.min.js"></script>
-<script src="/static/inference.js?v=1"></script>
+<script src="/static/inference.js?v=2"></script>
 </body>
 </html>

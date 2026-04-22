@@ -168,10 +168,19 @@ function deleteSelected() {
     const ids = [...document.querySelectorAll('.job-cb:checked')].map(cb => cb.value);
     if (!ids.length) return;
     if (!confirm(`Delete ${ids.length} job(s)? This cannot be undone.`)) return;
-    Promise.all(ids.map(id =>
-        fetch(`/api/jobs/${id}`, { method: 'DELETE' }).then(r => r.json())
-    )).then(() => fetchAll())
-      .catch(err => alert('Delete failed: ' + err));
+    Promise.allSettled(ids.map(id =>
+        fetch(`/api/jobs/${id}`, { method: 'DELETE' }).then(r => {
+            if (!r.ok) throw new Error(`${id.slice(0,8)}: HTTP ${r.status}`);
+            return r.json();
+        })
+    )).then(results => {
+        const failed = results.filter(r => r.status === 'rejected');
+        if (failed.length) {
+            alert(`Deleted ${ids.length - failed.length}/${ids.length}. Failures:\n` +
+                  failed.map(r => r.reason.message).join('\n'));
+        }
+        fetchAll();
+    });
 }
 
 // ── Actions ───────────────────────────────────────────────────────────────────
