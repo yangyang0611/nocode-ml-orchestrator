@@ -54,6 +54,32 @@ body {
 .nav-link.active { color: #fff !important; }
 .nav-link.active { border-bottom: 2px solid var(--primary); }
 
+/* ── Navbar user chip ── */
+.nav-user-group {
+    display: flex; align-items: center; gap: 10px;
+    margin-left: 18px; padding-left: 16px;
+    border-left: 1px solid rgba(255,255,255,.12);
+    height: 56px;
+}
+.nav-user-chip {
+    color: rgba(255,255,255,.92); font-size: .82rem; font-weight: 600;
+    background: rgba(67,97,238,.22); padding: 5px 12px; border-radius: 14px;
+    display: inline-flex; align-items: center; gap: 5px;
+}
+.nav-user-chip::before { content: "●"; color: var(--success); font-size: .55rem; }
+.nav-logout-btn {
+    background: transparent; border: 1px solid rgba(255,255,255,.22);
+    color: rgba(255,255,255,.75); font-size: .76rem; font-weight: 600;
+    padding: 4px 12px; border-radius: 14px; cursor: pointer;
+    transition: all .15s;
+}
+.nav-logout-btn:hover { color: #fff; border-color: rgba(255,255,255,.5); }
+.nav-login-link {
+    color: rgba(255,255,255,.85) !important; font-size: .82rem;
+    padding: 5px 14px !important; border: 1px solid rgba(255,255,255,.3);
+    border-radius: 14px;
+}
+
 /* ── Status badges ───────────────────────────────────────────────────────────── */
 .status-badge {
     display: inline-block;

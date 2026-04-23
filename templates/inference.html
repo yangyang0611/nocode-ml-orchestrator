@@ -75,7 +75,21 @@
         <a class="nav-item nav-link" href="/dashboard">Dashboard</a>
         <a class="nav-item nav-link active" href="/inference">Inference</a>
     </div>
+    <div class="nav-user-group">
+        {% if current_user %}
+            <span class="nav-user-chip">{{ current_user }}</span>
+            <button class="nav-logout-btn" onclick="navLogout()">Logout</button>
+        {% else %}
+            <a class="nav-login-link" href="/login">Sign in</a>
+        {% endif %}
+    </div>
 </nav>
+<script>
+function navLogout() {
+    fetch('/api/auth/logout', { method: 'POST' })
+        .finally(() => { window.location.href = '/login'; });
+}
+</script>
 
 <!-- Step bar -->
 <div class="step-bar">

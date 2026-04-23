@@ -1,19 +1,31 @@
+// ── State ─────────────────────────────────────────────────────────────────────
+let _me = null;                              // current username
+let _jobFilter = 'all';                      // 'all' | 'me'
+
 // ── Polling ───────────────────────────────────────────────────────────────────
 function fetchAll() {
+    const jobsUrl = _jobFilter === 'me' ? '/api/jobs?owner=me' : '/api/jobs';
     Promise.all([
         fetch('/api/resources').then(r => r.json()),
-        fetch('/api/jobs').then(r => r.json()),
+        fetch(jobsUrl).then(r => r.json()),
         fetch('/api/queue').then(r => r.json()),
     ]).then(([gpus, jobs, queue]) => {
         renderGPUs(gpus);
         renderQueue(queue);
-        renderJobs(jobs);
+        renderJobs(Array.isArray(jobs) ? jobs : []);
         document.getElementById('lastUpdated').textContent =
             'Updated ' + new Date().toLocaleTimeString();
     }).catch(err => console.error('Dashboard fetch error:', err));
 }
 
+function setJobFilter(f) {
+    _jobFilter = f;
+    document.querySelectorAll('.jobs-filter-btn').forEach(b => b.classList.toggle('active', b.dataset.filter === f));
+    fetchAll();
+}
+
 document.addEventListener('DOMContentLoaded', () => {
+    fetch('/api/auth/me').then(r => r.json()).then(d => { _me = d && d.username; });
     fetchAll();
     setInterval(fetchAll, 3000);
 });
@@ -27,33 +39,43 @@ function renderGPUs(gpus) {
     }
     panel.innerHTML = gpus.map(g => {
         const utilPct  = g.utilization;
-        const memPct   = Math.round(g.memory_used / g.memory_total * 100);
+        const memPct   = g.memory_total ? Math.round(g.memory_used / g.memory_total * 100) : 0;
         const utilColor = utilPct >= 80 ? 'danger' : utilPct >= 50 ? 'warning' : 'success';
         const memColor  = memPct  >= 80 ? 'danger' : memPct  >= 50 ? 'warning' : 'success';
-        const statusBadge = g.status === 'occupied'
-            ? '<span class="badge badge-primary ml-2">Occupied</span>'
-            : '<span class="badge badge-success ml-2">Free</span>';
+
+        const isOccupied = g.status === 'occupied';
+        const isMine = isOccupied && _me && g.owner_user === _me;
+        const statusBadge = isOccupied
+            ? `<span class="badge ${isMine ? 'badge-success' : 'badge-primary'} ml-2">${isMine ? 'Yours' : 'Occupied'}</span>`
+            : '<span class="badge badge-light ml-2" style="background:#d1fae5;color:#065f46;">Free</span>';
+
+        const ownerLine = isOccupied
+            ? `<div class="gpu-logical">
+                 <div><span class="lbl">Owner</span> <strong>${g.owner_user || '—'}</strong></div>
+                 <div><span class="lbl">Job</span> <code>${g.job_id ? g.job_id.slice(0,8) : '—'}</code></div>
+               </div>`
+            : `<div class="gpu-logical gpu-logical-free">Available · ${g.memory_free} MB free</div>`;
 
         return `
         <div class="col-md-6 mb-3">
           <div class="gpu-card">
-            <div class="gpu-name">${g.name} ${statusBadge}</div>
+            <div class="gpu-name">GPU ${g.gpu_id} · ${g.name} ${statusBadge}</div>
+            ${ownerLine}
+            <div class="gpu-section-label">Physical</div>
             <div class="gpu-stat d-flex justify-content-between">
-              <span>GPU Utilization</span><span>${utilPct}%</span>
+              <span>Utilization</span><span>${utilPct}%</span>
             </div>
             <div class="progress">
               <div class="progress-bar bg-${utilColor}" style="width:${utilPct}%"></div>
             </div>
             <div class="gpu-stat d-flex justify-content-between">
-              <span>Memory</span>
+              <span>VRAM</span>
               <span>${g.memory_used} / ${g.memory_total} MB (${memPct}%)</span>
             </div>
             <div class="progress">
               <div class="progress-bar bg-${memColor}" style="width:${memPct}%"></div>
             </div>
-            <div class="gpu-stat">Temperature: <strong>${g.temperature}°C</strong>
-              ${g.job_id ? `&nbsp;|&nbsp; Running: <code style="font-size:.75rem">${g.job_id.slice(0,8)}</code>` : ''}
-            </div>
+            <div class="gpu-stat">Temperature: <strong>${g.temperature}°C</strong></div>
           </div>
         </div>`;
     }).join('');
@@ -84,14 +106,16 @@ function renderJobs(jobs) {
     );
 
     if (!jobs.length) {
+        const emptyMsg = _jobFilter === 'me'
+            ? `<div style="font-weight:700; font-size:1rem; margin-bottom:6px;">You have no training jobs yet</div>
+               <div style="color:#6b7280; font-size:.875rem; margin-bottom:20px;">Submit one to see it listed here.</div>`
+            : `<div style="font-weight:700; font-size:1rem; margin-bottom:6px;">No training jobs yet</div>
+               <div style="color:#6b7280; font-size:.875rem; margin-bottom:20px;">Start by preprocessing your dataset, then submit a training job.</div>`;
         tbody.innerHTML = `
-        <tr><td colspan="9">
+        <tr><td colspan="10">
             <div style="text-align:center; padding:40px 20px;">
                 <div style="font-size:2rem; margin-bottom:12px;">🤖</div>
-                <div style="font-weight:700; font-size:1rem; margin-bottom:6px;">No training jobs yet</div>
-                <div style="color:#6b7280; font-size:.875rem; margin-bottom:20px;">
-                    Start by preprocessing your dataset, then submit a training job.
-                </div>
+                ${emptyMsg}
                 <a href="/" class="btn btn-outline-secondary btn-sm mr-2">Go to Preprocessing</a>
                 <a href="/train" class="btn btn-primary btn-sm">Submit Training Job →</a>
             </div>
@@ -111,11 +135,14 @@ function renderJobs(jobs) {
             ? new Date(job.submitted_at).toLocaleString()
             : '-';
         const checked   = checkedIds.has(id) ? 'checked' : '';
+        const owner     = job.user || '—';
+        const ownerCls  = _me && owner === _me ? 'owner-me' : 'owner-other';
 
         return `
         <tr>
           <td><input type="checkbox" class="job-cb" value="${id}" ${checked} onchange="updateDeleteBtn()"></td>
           <td><code style="font-size:.8rem; cursor:pointer; text-decoration:underline dotted;" title="Click to see details" onclick="showDetails('${id}')">${short}</code></td>
+          <td><span class="owner-chip ${ownerCls}">${owner}</span></td>
           <td><span class="status-badge ${sCls}">${status}</span></td>
           <td>${job.model || '-'}</td>
           <td>${job.epochs || '-'}</td>

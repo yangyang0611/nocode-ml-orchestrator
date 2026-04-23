@@ -140,8 +140,9 @@ def _try_dispatch_next_job():
 
     job_id   = job["job_id"]
     priority = job.get("priority", "medium")
+    owner    = job.get("user", "")
 
-    gpu_id = allocate_gpu(job_id)
+    gpu_id = allocate_gpu(job_id, owner_user=owner)
 
     if gpu_id is None:
         # No GPU free — put job back at the front of its queue

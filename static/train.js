@@ -1,4 +1,52 @@
-document.addEventListener('DOMContentLoaded', loadDatasets);
+let _me = null;
+
+document.addEventListener('DOMContentLoaded', () => {
+    loadDatasets();
+    fetch('/api/auth/me').then(r => r.json()).then(d => { _me = d && d.username; });
+    loadGpuStrip();
+    setInterval(loadGpuStrip, 3000);
+});
+
+function loadGpuStrip() {
+    fetch('/api/resources')
+        .then(r => r.json())
+        .then(renderGpuStrip)
+        .catch(() => {});
+}
+
+function renderGpuStrip(gpus) {
+    const el = document.getElementById('gpuStrip');
+    if (!Array.isArray(gpus) || !gpus.length) {
+        el.innerHTML = '<div class="text-muted" style="font-size:.82rem;">No GPUs detected.</div>';
+        return;
+    }
+    const freeCount = gpus.filter(g => g.status !== 'occupied').length;
+    document.getElementById('gpuStripHint').textContent =
+        `Live · ${freeCount}/${gpus.length} free`;
+
+    el.innerHTML = gpus.map(g => {
+        const occupied = g.status === 'occupied';
+        const mine = occupied && _me && g.owner_user === _me;
+        const cls = mine ? 'mine' : (occupied ? 'busy' : 'free');
+        const badgeCls = mine ? 'b-mine' : (occupied ? 'b-busy' : 'b-free');
+        const badgeText = mine ? 'Your job' : (occupied ? 'Busy' : 'Free');
+        const memPct = g.memory_total ? Math.round(g.memory_used / g.memory_total * 100) : 0;
+        const ownerLine = occupied
+            ? `<div class="gpu-mini-line"><span>Owner</span><span><strong>${g.owner_user || '—'}</strong></span></div>`
+            : `<div class="gpu-mini-line" style="color:#059669;"><span>Ready to use</span><span>${g.memory_free} MB free</span></div>`;
+        return `
+        <div class="gpu-mini ${cls}">
+            <div class="gpu-mini-head">
+                <span>GPU ${g.gpu_id}</span>
+                <span class="gpu-mini-badge ${badgeCls}">${badgeText}</span>
+            </div>
+            <div class="gpu-mini-line"><span>${g.name}</span><span>${g.utilization}%</span></div>
+            <div class="gpu-mini-line"><span>VRAM</span><span>${g.memory_used} / ${g.memory_total} MB</span></div>
+            <div class="gpu-mini-bar"><div style="width:${memPct}%"></div></div>
+            ${ownerLine}
+        </div>`;
+    }).join('');
+}
 
 function loadDatasets() {
     const sel  = document.getElementById('dataset');

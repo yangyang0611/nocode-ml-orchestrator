@@ -4,13 +4,39 @@ import zipfile
 import numpy as np
 from PIL import Image, ImageEnhance
 import shutil
-from flask import Flask, request, jsonify, send_from_directory, send_file, render_template, make_response
+from flask import Flask, request, jsonify, send_from_directory, send_file, render_template, make_response, session, redirect, url_for
 from flask_cors import CORS
+from functools import wraps
 import random
 import time
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, supports_credentials=True)
+app.secret_key = os.getenv("FLASK_SECRET_KEY", "dev-secret-change-in-prod-123456")
+
+
+# ── Auth helpers ──────────────────────────────────────────────────────────────
+from job_manager.user_manager import ensure_user, get_user, list_users
+
+
+def login_required(f):
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        if not session.get('username'):
+            if request.path.startswith('/api/'):
+                return jsonify({"error": "Not authenticated"}), 401
+            return redirect(url_for('login_page', next=request.path))
+        return f(*args, **kwargs)
+    return wrapper
+
+
+def current_username() -> str:
+    return session.get('username') or ''
+
+
+@app.context_processor
+def inject_current_user():
+    return {"current_user": session.get('username')}
 
 UPLOAD_FOLDER = 'uploads/'
 PROCESSED_FOLDER = 'processed/'
@@ -201,18 +227,61 @@ def index():
 
 
 @app.route('/train')
+@login_required
 def train():
     return render_template('train.html')
 
 
 @app.route('/dashboard')
+@login_required
 def dashboard():
     return render_template('dashboard.html')
 
 
 @app.route('/inference')
+@login_required
 def inference_page():
     return render_template('inference.html')
+
+
+@app.route('/login')
+def login_page():
+    if session.get('username'):
+        return redirect(url_for('dashboard'))
+    return render_template('login.html')
+
+
+@app.route('/api/auth/login', methods=['POST'])
+def api_login():
+    data = request.json or {}
+    raw = (data.get('username') or '').strip()
+    try:
+        user = ensure_user(raw)
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+    session.permanent = True
+    session['username'] = user['username']
+    return jsonify(user), 200
+
+
+@app.route('/api/auth/logout', methods=['POST'])
+def api_logout():
+    session.pop('username', None)
+    return jsonify({"ok": True}), 200
+
+
+@app.route('/api/auth/me', methods=['GET'])
+def api_me():
+    username = session.get('username')
+    if not username:
+        return jsonify({"username": None, "authenticated": False}), 200
+    user = get_user(username) or {"username": username}
+    return jsonify({**user, "authenticated": True}), 200
+
+
+@app.route('/api/auth/users', methods=['GET'])
+def api_list_users():
+    return jsonify(list_users()), 200
 
 
 INFERENCE_RUNS_FOLDER = 'inference_runs/'
@@ -499,6 +568,7 @@ from job_manager.scheduler import start_scheduler
 
 
 @app.route('/api/jobs', methods=['POST'])
+@login_required
 def api_submit_job():
     data = request.json or {}
     required = {'model', 'epochs', 'dataset'}
@@ -514,7 +584,7 @@ def api_submit_job():
         "optimizer":  data.get('optimizer', 'auto'),
         "patience":   str(data.get('patience', 50)),
         "dataset":    data['dataset'],
-        "user":       data.get('user', 'anonymous'),
+        "user":       current_username() or 'anonymous',
     }
     priority = data.get('priority', 'medium')
     job_id = submit_job(job_config, priority=priority)
@@ -523,7 +593,14 @@ def api_submit_job():
 
 @app.route('/api/jobs', methods=['GET'])
 def api_list_jobs():
-    return jsonify(list_jobs()), 200
+    jobs = list_jobs()
+    owner = request.args.get('owner', '')
+    if owner == 'me':
+        me = current_username()
+        jobs = [j for j in jobs if j.get('user') == me] if me else []
+    elif owner:
+        jobs = [j for j in jobs if j.get('user') == owner]
+    return jsonify(jobs), 200
 
 
 @app.route('/api/jobs/<job_id>', methods=['GET'])

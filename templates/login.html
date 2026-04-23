@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign in — ML Orchestrator</title>
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/static/shared.css">
+    <style>
+        body { display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+        .login-card {
+            background: #fff; border: 1px solid var(--border); border-radius: 16px;
+            box-shadow: var(--shadow); padding: 40px 36px; width: 100%; max-width: 400px;
+        }
+        .login-title { font-size: 1.3rem; font-weight: 700; margin-bottom: 4px; letter-spacing: -.02em; }
+        .login-sub   { font-size: .85rem; color: var(--muted); margin-bottom: 24px; }
+        .login-input {
+            width: 100%; border: 1.5px solid var(--border); border-radius: 10px;
+            height: 44px; padding: 0 14px; font-size: .9rem;
+            background: #fafbff; transition: border-color .15s, box-shadow .15s;
+        }
+        .login-input:focus {
+            outline: none; border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(67,97,238,.12); background: #fff;
+        }
+        .login-btn {
+            width: 100%; padding: 12px; margin-top: 14px; border: none; border-radius: 10px;
+            background: linear-gradient(135deg, #4361ee, #3a56e8);
+            color: #fff; font-size: .95rem; font-weight: 600; cursor: pointer;
+            box-shadow: 0 4px 14px rgba(67,97,238,.35);
+        }
+        .login-btn:hover { opacity: .93; }
+        .login-btn:disabled { opacity: .6; cursor: not-allowed; }
+        .login-hint { font-size: .75rem; color: var(--muted); margin-top: 10px; text-align: center; }
+        .login-error {
+            margin-top: 12px; padding: 10px 14px; border-radius: 8px;
+            background: #fef2f2; border: 1.5px solid #fecaca; color: #b91c1c; font-size: .82rem;
+            display: none;
+        }
+        .existing-users {
+            margin-top: 18px; padding-top: 14px; border-top: 1px dashed var(--border);
+        }
+        .existing-users-label { font-size: .72rem; color: var(--muted); margin-bottom: 8px; text-transform: uppercase; letter-spacing: .06em; font-weight: 700; }
+        .user-chip {
+            display: inline-block; padding: 4px 10px; border-radius: 14px;
+            background: #eef1fd; color: #3730a3; font-size: .78rem; font-weight: 600;
+            margin: 3px 4px 0 0; cursor: pointer; transition: background .12s;
+        }
+        .user-chip:hover { background: #dce3fa; }
+    </style>
+</head>
+<body style="background: var(--bg);">
+
+<div class="login-card">
+    <div class="login-title">Sign in</div>
+    <div class="login-sub">Enter a username to continue. A new account is created automatically on first login.</div>
+
+    <form id="loginForm" onsubmit="doLogin(event)">
+        <input id="username" class="login-input" type="text" placeholder="username"
+               autocomplete="username" autofocus maxlength="32" required>
+        <button id="loginBtn" class="login-btn" type="submit">Continue →</button>
+    </form>
+
+    <div class="login-hint">Allowed: a–z, 0–9, '_' and '-' (2–32 chars)</div>
+    <div class="login-error" id="loginError"></div>
+
+    <div class="existing-users" id="existingUsersWrap" style="display:none;">
+        <div class="existing-users-label">Existing users (click to reuse)</div>
+        <div id="existingUsers"></div>
+    </div>
+</div>
+
+<script>
+function qs(name) {
+    const m = new URLSearchParams(window.location.search).get(name);
+    return m ? decodeURIComponent(m) : null;
+}
+
+async function doLogin(ev) {
+    ev.preventDefault();
+    const username = document.getElementById('username').value.trim().toLowerCase();
+    const err = document.getElementById('loginError');
+    const btn = document.getElementById('loginBtn');
+    err.style.display = 'none';
+    btn.disabled = true;
+    btn.textContent = 'Signing in…';
+    try {
+        const r = await fetch('/api/auth/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username }),
+        });
+        const data = await r.json();
+        if (!r.ok) throw new Error(data.error || 'Login failed');
+        const next = qs('next') || '/dashboard';
+        window.location.href = next;
+    } catch (e) {
+        err.textContent = e.message;
+        err.style.display = 'block';
+        btn.disabled = false;
+        btn.textContent = 'Continue →';
+    }
+}
+
+async function loadExistingUsers() {
+    try {
+        const r = await fetch('/api/auth/users');
+        const users = await r.json();
+        if (!Array.isArray(users) || !users.length) return;
+        const wrap = document.getElementById('existingUsersWrap');
+        const list = document.getElementById('existingUsers');
+        list.innerHTML = users.map(u =>
+            `<span class="user-chip" onclick="pick('${u.username}')">${u.username}</span>`
+        ).join('');
+        wrap.style.display = 'block';
+    } catch (_) {}
+}
+
+function pick(name) {
+    document.getElementById('username').value = name;
+    document.getElementById('username').focus();
+}
+
+loadExistingUsers();
+</script>
+
+</body>
+</html>
