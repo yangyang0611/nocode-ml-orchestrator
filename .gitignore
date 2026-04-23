@@ -13,6 +13,7 @@ docs/
 # Qualcomm AI Hub compiled model files (large binaries)
 *.dlc
 *.bin.dlc
+/qualcomm_aihub
 
 # Per-request inference outputs
 inference_runs/
